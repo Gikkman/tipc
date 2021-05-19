@@ -1,21 +1,25 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'path';
-import { addWindow, tipc } from './bus/Bus';
+import { addWindow, tipc, tipcMain } from './bus/Bus';
 import { A } from './shared/EventApiA';
+import { F } from './shared/EventApiF';
 /************************************************************************
  *  Main behaviour
  ************************************************************************/
-
 const bus = tipc<A>("default", true);
-bus.on("a", (data) => {
-    console.log(data + " on 'a' in main");
+bus.on("a", (event) => {
+    console.log(`Received ${event.data} from ${event.sender} on main`);
 })
-bus.on("b", (data) => {
-    console.log(data + " on 'b' in main");
+bus.on("b", (event) => {
+    console.log(`Received ${event.data} from ${event.sender} on main`);
 })
-bus.on("c", (data) => {
-    console.log(data + " on 'c' in main");
+bus.on("c", (event) => {
+    console.log(`Received ${event.data} from ${event.sender} on main`);
 })
+bus.on("d", (event) => {
+    console.log(`Received ${event} on main`);
+})
+const test = tipcMain<F>();
 
 
 function createWindow() {
@@ -28,8 +32,8 @@ function createWindow() {
     });
     window.loadFile(join(__dirname, './frontend/index.html'))
     .then(e => {
-        bus.broadcast("a", 1);
-        setInterval(() => bus.broadcast('b', 2), 2300)
+        bus.broadcast("a", {data: 1, sender: 'main'});
+        setInterval(() => bus.broadcast('b', {data: 2, sender: 'main'}), 5000)
     })
     window.webContents.openDevTools();
     addWindow(window);

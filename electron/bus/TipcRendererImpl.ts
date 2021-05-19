@@ -1,15 +1,15 @@
-import { BrowserWindow, IpcMain } from 'electron';
+import { IpcRenderer } from 'electron';
 import {EventEmitter} from 'events';
-import { SubscriptionHandle, TipcEventData } from './InternalTypings';
+import { SubscriptionHandle } from './InternalTypings';
 import { TipcCoreImpl } from './TipcCoreImpl';
 
-export class TipcMainImpl<T> {
+export class TipcRendererImpl<T> {
     private _tipcImpl: TipcCoreImpl<T>;
-    private _windowSetGetter: () => Set<BrowserWindow>;
+    private _ipcRenderer: IpcRenderer;
 
-    constructor(settings: {internalId: string, namespace: string, ipc: IpcMain, localEmitter: EventEmitter,  debug?: boolean}, windowSetGetter: () => Set<BrowserWindow>,) {
+    constructor(settings: {internalId: string, namespace: string, ipc: IpcRenderer, localEmitter: EventEmitter,  debug?: boolean}) {
         this._tipcImpl = new TipcCoreImpl<T>(settings);
-        this._windowSetGetter = windowSetGetter;
+        this._ipcRenderer = settings.ipc;
     }
 
     on<K extends keyof T, V extends T[K]>(key: K, callback: (data: V) => any): SubscriptionHandle {
@@ -22,10 +22,6 @@ export class TipcMainImpl<T> {
 
     broadcast<K extends keyof T, V extends T[K]>(key: K, data: V): void {
         const {fullKey, fullEvent} = this._tipcImpl.broadcast(key, data);
-        this.broadcastAllWindows(fullKey, fullEvent);
-    }
-
-    private broadcastAllWindows<V>(key: string, event: TipcEventData<V>) {
-        this._windowSetGetter().forEach(win => win.webContents.send(key, event));
+        this._ipcRenderer.send(fullKey, fullEvent);
     }
 }

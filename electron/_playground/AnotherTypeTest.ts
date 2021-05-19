@@ -1,4 +1,4 @@
-import { Predicate, NoFunctions } from "../bus/InternalTypings";
+import { NoFunctions } from "../bus/InternalTypings";
 
 type keysOfAny = keyof any;
 

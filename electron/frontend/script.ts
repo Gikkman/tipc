@@ -1,23 +1,43 @@
 import { tipc } from '../bus/Bus';
 import { A } from '../shared/EventApiA';
 
+const listElem = document.getElementById("list") as HTMLUListElement;
+
 /************************************************************************
  *  Event listeners
  ************************************************************************/
 const bus = tipc<A>("default", true);
 bus.on("a", (data) => {
-    console.log(data + " on 'a' in renderer");
+    listElem.append( createListElement(data) )
 })
 bus.on("b", (data) => {
-    console.log(data + " on 'b' in renderer");
+    listElem.append( createListElement(data) )
 })
 bus.on("c", (data) => {
-    console.log(data + " on 'c' in renderer");
+    listElem.append( createListElement(data) )
 })
 
 /************************************************************************
  *  Explicit methods
  ************************************************************************/
-setInterval(() => {
-    bus.broadcast('c', 3)
-}, 1000);
+function sendA() {
+    bus.broadcast("a", {data: 1, sender: "renderer"});
+}
+function sendB() {
+    bus.broadcast("b", {data: 2, sender: "renderer"});
+}
+function sendC() {
+    bus.broadcast("c", {data: 3, sender: "renderer"});
+}
+function sendD() {
+    bus.broadcast("d", undefined);
+}
+
+/************************************************************************
+ *  Internal methods
+ ************************************************************************/
+function createListElement(event: {data: number, sender: string}) {
+    const node = document.createElement('li');
+    node.textContent = `${event.data} (${event.sender})`;
+    return node;
+}

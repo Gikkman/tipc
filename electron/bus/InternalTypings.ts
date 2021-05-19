@@ -2,28 +2,13 @@
 // Type definitions to make a type that allows us to create a type predicate
 // for the exported methods
 /////////////////////////////////////////////////////////////////////////////
-type EmptyObject = { [K in any] : never }
+export type NoFunctions<M> = { 
+    [P in Extract<keyof M, string | symbol>]: M[P] extends Function ? never : M[P]
+};
 
-type AllOrNever<
-  TRecord,
-  TMatch,
-  K extends keyof TRecord = keyof TRecord
-> = TRecord[K] extends TMatch ? K : never;
-
-type FullInterfaceOrNothing<
-  TRecord,
-  TMatch,
-  Matches extends keyof TRecord = AllOrNever<TRecord, TMatch>
-> = Pick<TRecord, Matches>
-
-export type NoFunctions<T> = T extends {
-    [K in keyof T]: T[K] extends Function ? never : T[K]
-} ? {} : never;
-
-export type Predicate<
-    TRecord,
-    TMatch
-> = FullInterfaceOrNothing<TRecord, TMatch> extends EmptyObject ? never : {};
+export type OnlyFunctions<M> = { 
+    [P in Extract<keyof M, string | symbol>]: M[P] extends (...args: infer A) => infer R ? (...args: A) => R : never
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // General types
@@ -37,7 +22,7 @@ export type TipcEventData<T> = {
     eventData: T,
 }
 
-export type SubscriptionHandle<T> = {
+export type SubscriptionHandle = {
     unsubscribe: () => void,
 }
 
