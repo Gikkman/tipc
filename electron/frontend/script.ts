@@ -1,4 +1,5 @@
-import { tipc } from '../bus/Bus';
+import { F } from '@shared/EventApiF';
+import { tipc, tipcRenderer } from '../bus/Bus';
 import { A } from '../shared/EventApiA';
 
 const listElem = document.getElementById("list") as HTMLUListElement;
@@ -20,6 +21,11 @@ bus.once("d", () => {
     listElem.append( createListElement({data: -1, sender: ''}) )
 })
 
+const invoker = tipcRenderer<F>();
+invoker.invoke("a", 1, "hello");
+invoker.invoke("b", 2, "world");
+invoker.invoke("c", 3);
+invoker.invoke("d");
 /************************************************************************
  *  Explicit methods
  ************************************************************************/

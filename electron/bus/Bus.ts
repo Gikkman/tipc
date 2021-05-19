@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import { EventEmitter } from 'events';
 import {BrowserWindow, ipcRenderer, ipcMain} from 'electron';
-import { SubscriptionHandle, WindowHandle, OnlyFunctions, NoFunctions } from './InternalTypings';
+import { SubscriptionHandle, WindowHandle, OnlyFunctions, NoFunctions, Args } from './InternalTypings';
 import { TipcMainImpl } from './TipcMainImpl';
 import { TipcRendererImpl } from './TipcRendererImpl';
 
@@ -24,10 +24,12 @@ export function tipc<T extends NoFunctions<T>>(namespace: string = "default-name
 
 export function tipcMain<T extends OnlyFunctions<T>>() {
     if( processType !== "browser" ) throw new Error("Cannot create a tipc main handle. This can only be done in main processes. This process type is " + processType);
+    return {} as TipcMain<T>;
 }
 
 export function tipcRenderer<T extends OnlyFunctions<T>>() {
     if( processType !== "renderer" ) throw new Error("Cannot create a tipc render handle. This can only be done in render processes. This process type is " + processType);
+    return {} as TipcRenderer<T>;
 }
 
 interface Tipc<T extends NoFunctions<T>> {
@@ -37,9 +39,9 @@ interface Tipc<T extends NoFunctions<T>> {
 }
 
 interface TipcMain<T extends OnlyFunctions<T>> {
-    handle<K extends keyof T, V extends T[K], R extends ReturnType<T[K]>>(channel: K, handler: (data: V) => R | Promise<R>): SubscriptionHandle;
+    handle<K extends keyof T, R extends ReturnType<T[K]>>(channel: K, handler: (...data: Args<T,K>) => R | Promise<R>): SubscriptionHandle;
 }
 
 interface TipcRenderer<T extends OnlyFunctions<T>> {
-    handle<K extends keyof T, V extends T[K], R extends ReturnType<T[K]>>(channel: K, data: V ): Promise<R>;
+    invoke<K extends keyof T, R extends ReturnType<T[K]>>(channel: K, ...args: Args<T,K>): Promise<R>;
 }

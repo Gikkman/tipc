@@ -10,6 +10,8 @@ export type OnlyFunctions<M> = {
     [P in Extract<keyof M, string | symbol>]: M[P] extends (...args: infer A) => infer R ? (...args: A) => R : never
 };
 
+export type Args<M, E extends keyof M> = M[E] extends (...args: infer A) => any ? A : never;
+
 /////////////////////////////////////////////////////////////////////////////
 // General types
 /////////////////////////////////////////////////////////////////////////////
