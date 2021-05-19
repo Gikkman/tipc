@@ -16,15 +16,15 @@ bus.on("b", (event) => {
 bus.on("c", (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 })
-bus.once("d", (event) => {
-    console.log(`Received ${event} on main`);
+bus.once("d", () => {
+    console.log(`Received -blank- on main`);
     bus.broadcast('c', {sender: 'main', data: 3});
 })
-const handler = tipcMain<F>();
+/* const handler = tipcMain<F>();
 handler.handle("a", (data, sender) => 1);
 handler.handle("b", (data, sender) => 2);
 handler.handle("c", (data) => 3);
-handler.handle("d", async () => "hello");
+handler.handle("d", async () => "hello"); */
 
 function createWindow() {
     let window = new BrowserWindow({

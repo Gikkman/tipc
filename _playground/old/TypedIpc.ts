@@ -13,6 +13,7 @@ type Evented<On, Emit = On> = { [meta]?: [On, Emit] };
 type Funcify<M> = {
     [P in Extract<keyof M, string>]: M[P] extends Function ? M[P]: (arg: M[P]) => void
 };
+type Typings<M, F = Funcify<M>> = Args<F,keyof F>;
 
 /* ************************************************************************************************
  *  On, Once and Send

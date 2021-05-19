@@ -1,3 +1,7 @@
+type Funcify<M> = {
+    [P in keyof M]: M[P] extends Function ? M[P]: (arg: M[P]) => void
+};
+
 /////////////////////////////////////////////////////////////////////////////
 // Type definitions to make a type that allows us to create a type predicate
 // for the exported methods
@@ -11,7 +15,7 @@ export type OnlyFunctions<M> = {
 };
 
 export type Args<M, E extends keyof M> = M[E] extends (...args: infer A) => any ? A : never;
-
+export type Typings<M, K extends keyof M, F extends Funcify<M>= Funcify<M>> = Args<F, K>;
 /////////////////////////////////////////////////////////////////////////////
 // General types
 /////////////////////////////////////////////////////////////////////////////

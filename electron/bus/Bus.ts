@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import { EventEmitter } from 'events';
 import {BrowserWindow, ipcRenderer, ipcMain} from 'electron';
-import { SubscriptionHandle, WindowHandle, OnlyFunctions, NoFunctions, Args } from './InternalTypings';
+import { SubscriptionHandle, WindowHandle, OnlyFunctions, NoFunctions, Args, Typings } from './InternalTypings';
 import { TipcMainImpl } from './TipcMainImpl';
 import { TipcRendererImpl } from './TipcRendererImpl';
 
@@ -33,13 +33,13 @@ export function tipcRenderer<T extends OnlyFunctions<T>>() {
 }
 
 interface Tipc<T extends NoFunctions<T>> {
-    on<K extends keyof T, V extends T[K]>(key: K, callback: (data: V) => any): SubscriptionHandle,
-    once<K extends keyof T, V extends T[K]>(key: K, callback: (data: V) => any): SubscriptionHandle,
-    broadcast<K extends keyof T, V extends T[K]>(key: K, data: V): void,
+    on<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle,
+    once<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle,
+    broadcast<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, ...args: V): void,
 }
 
 interface TipcMain<T extends OnlyFunctions<T>> {
-    handle<K extends keyof T, R extends ReturnType<T[K]>>(channel: K, handler: (...data: Args<T,K>) => R | Promise<R>): SubscriptionHandle;
+    handle<K extends keyof T, R extends ReturnType<T[K]>>(channel: K, handler: (...args: Args<T,K>) => R | Promise<R>): SubscriptionHandle;
 }
 
 interface TipcRenderer<T extends OnlyFunctions<T>> {

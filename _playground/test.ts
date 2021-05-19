@@ -6,18 +6,19 @@ type OnlyFunctions<M> = {
     [P in keyof M]: M[P] extends (...args: infer A) => infer R ? (...args: A) => R : never
 };
 
+type Funcify<M> = {
+    [P in keyof M]: M[P] extends Function ? M[P]: (arg: M[P]) => void
+};
+type Args<M, E extends keyof M> = M[E] extends (...args: infer A) => void ? A : never;
+type Typings<M, K extends keyof M, F extends Funcify<M> = Funcify<M>> = Args<F, K>;
 
 interface A {
   'a': 1
   'b': void
 }
 
-interface II<T> {
-    func<K extends keyof T, V extends T[K]>(a: K, v: V): string
-};
-const i = {} as II<A>;
-i.func('a', 1);
-i.func('b', undefined);
+type Af = Funcify<A>;
+type Aa = Typings<A, 'a'>
 
 interface F {
   'f': (a: string, b: number) => {}

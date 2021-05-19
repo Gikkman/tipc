@@ -21,11 +21,11 @@ bus.once("d", () => {
     listElem.append( createListElement({data: -1, sender: ''}) )
 })
 
-const invoker = tipcRenderer<F>();
+/* const invoker = tipcRenderer<F>();
 invoker.invoke("a", 1, "hello");
 invoker.invoke("b", 2, "world");
 invoker.invoke("c", 3);
-invoker.invoke("d");
+invoker.invoke("d"); */
 /************************************************************************
  *  Explicit methods
  ************************************************************************/
