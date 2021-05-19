@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+      "outDir": "_compile",
+      "module": "commonjs",
+      "target": "es6",
+      "allowJs": false,
+      "sourceMap": true,
+      "baseUrl": "./electron",
+      "paths": {
+          "@shared/*": ["shared/*"]
+        },
+      "strict": true
+  },
+  "include": [
+      "electron/**/*"
+  ]
+}

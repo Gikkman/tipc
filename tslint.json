@@ -1,0 +1,16 @@
+{
+    "rules": {
+      "indent": [true, "spaces", 2],
+      "interface-name": false,
+      "interface-over-type-literal": false,
+      "max-line-length": { "options": [100] },
+      "object-literal-sort-keys": false,
+      "quotemark": [true, "single"],
+      "trailing-comma": false,
+      "ban-types": false
+    },
+    "defaultSeverity": "error",
+    "extends": [
+      "tslint:recommended"
+    ]
+  }

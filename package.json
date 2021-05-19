@@ -1,0 +1,25 @@
+{
+  "name": "electron-typescript-opinionated-started",
+  "version": "1.0.0",
+  "repository": "https://github.com/Gikkman/electron-typescript-opinionated-started",
+  "description": "Example app using Electron, Typescript, Sqlite and VSCode",
+  "author": {
+    "name": "Gikkman",
+    "url": "http://www.github.com/gikkman"
+  },
+  "main": "_compile/Main.js",
+  "scripts": {
+    "prestart": "npm run compile",
+    "start": "electron .",
+    "compile": "tsc && tscpaths -p tsconfig.json -s ./electron -o ./_compile",
+    "postcompile": "copyfiles -u 1 electron/**/*.html electron/**/*.css _compile/"
+  },
+  "keywords": [],
+  "license": "MIT",
+  "dependencies": {
+    "copyfiles": "^2.4.1",
+    "electron": "^12.0.7",
+    "tscpaths": "0.0.9",
+    "typescript": "^4.2.4"
+  }
+}

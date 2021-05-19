@@ -1,0 +1,39 @@
+{    
+    "asar": true,
+    "productName": "ElectronTypescriptOpinionatedStarter",
+    "appId": "random-string-here",
+    "extraResources": [
+        "./.migrations/*",
+        "!./.migrations/*.js"
+    ],
+    "win": {
+        "target": [
+            "portable",
+            "nsis-web",
+            "nsis",
+            "zip"
+        ],
+        "icon": "assets/win.ico"
+    },
+    "mac": {
+        "icon": "assets/mac.icns"
+    },
+    "nsis": {
+        "oneClick": false,
+        "installerIcon": "assets/win.ico",
+        "installerHeaderIcon": "assets/win.ico",
+        "allowToChangeInstallationDirectory": true
+    },
+    "nsisWeb": {
+        "oneClick": true,
+        "allowToChangeInstallationDirectory": false
+    },
+    "portable": {
+        "unpackDirName": "unpack",
+        "artifactName": "Example.exe"
+    },
+    "directories": {
+        "buildResources": "assets",
+        "output": "./_build"
+    }
+}
