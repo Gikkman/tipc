@@ -16,8 +16,9 @@ bus.on("b", (event) => {
 bus.on("c", (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 })
-bus.on("d", (event) => {
+bus.once("d", (event) => {
     console.log(`Received ${event} on main`);
+    bus.broadcast('c', {sender: 'main', data: 3});
 })
 const test = tipcMain<F>();
 

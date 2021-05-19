@@ -16,6 +16,9 @@ bus.on("b", (data) => {
 bus.on("c", (data) => {
     listElem.append( createListElement(data) )
 })
+bus.once("d", () => {
+    listElem.append( createListElement({data: -1, sender: ''}) )
+})
 
 /************************************************************************
  *  Explicit methods
