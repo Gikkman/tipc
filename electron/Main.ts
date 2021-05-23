@@ -5,7 +5,7 @@ import { A } from './shared/EventApi'
 /************************************************************************
  *  Main behaviour
  ************************************************************************/
-const bus = tipc<A>)({debug: true})
+const bus = tipc<A>({debug: true})
 bus.on("a", (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 })
