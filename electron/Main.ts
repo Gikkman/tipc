@@ -1,12 +1,11 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'path';
 import { addWindow, tipc, tipcMain } from './bus/Bus';
-import { A } from './shared/EventApiA';
-import { F } from './shared/EventApiF';
+import { A } from './shared/EventApi'
 /************************************************************************
  *  Main behaviour
  ************************************************************************/
-const bus = tipc<A>("default", true);
+const bus = tipc<A>)({debug: true})
 bus.on("a", (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 })
@@ -19,12 +18,8 @@ bus.on("c", (event) => {
 bus.once("d", () => {
     console.log(`Received -blank- on main`);
     bus.broadcast('c', {sender: 'main', data: 3});
-})
-/* const handler = tipcMain<F>();
-handler.handle("a", (data, sender) => 1);
-handler.handle("b", (data, sender) => 2);
-handler.handle("c", (data) => 3);
-handler.handle("d", async () => "hello"); */
+});
+
 
 function createWindow() {
     let window = new BrowserWindow({

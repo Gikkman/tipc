@@ -12,15 +12,15 @@ export class TipcRendererImpl<T> {
         this._ipcRenderer = settings.ipc;
     }
 
-    on<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    on<K extends keyof T, V extends Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
         return this._tipcImpl.on(key, callback);
     }
     
-    once<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    once<K extends keyof T, V extends Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
         return this._tipcImpl.once(key, callback);
     }
 
-    broadcast<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, ...args: V): void {
+    broadcast<K extends keyof T, V extends Typings<T,K>>(key: K, ...args: V): void {
         const {fullKey, fullEvent} = this._tipcImpl.broadcast(key, ...args);
         this._ipcRenderer.send(fullKey, fullEvent);
     }

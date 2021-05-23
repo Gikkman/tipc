@@ -19,7 +19,7 @@ export class TipcCoreImpl<T> {
         if(this._debug) console.debug("Bus debug mode: " + this._debug, this._internalId, this._namespace);
     }
 
-    on<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    on<K extends keyof T, V extends Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
         const fullKey = this.makeKey(key);
         const localCB = (wrapped: TipcEventData<V>) => {
             this.debugLog("Received event (local):", wrapped.topic, wrapped.senderId, wrapped.eventData);
@@ -41,7 +41,7 @@ export class TipcCoreImpl<T> {
         }
     }
     
-    once<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    once<K extends keyof T, V extends Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
         const fullKey = this.makeKey(key);
         const localCB = (wrapped: TipcEventData<V>) => {
             this.debugLog("Received event (local, once):", wrapped.topic, wrapped.senderId, wrapped.eventData);
@@ -63,7 +63,7 @@ export class TipcCoreImpl<T> {
         }
     }
 
-    broadcast<K extends keyof T, V extends Typings<T,K> = Typings<T,K>>(key: K, ...args: V): {fullKey: string, fullEvent: TipcEventData<V>} {
+    broadcast<K extends keyof T, V extends Typings<T,K>>(key: K, ...args: V): {fullKey: string, fullEvent: TipcEventData<V>} {
         const fullKey = this.makeKey(key);
         const fullEvent: TipcEventData<V> = {senderId: this._internalId, topic: fullKey, eventData: args};
         this.debugLog("Broadcasting event:", fullEvent.topic, fullEvent.senderId, fullEvent.eventData);
