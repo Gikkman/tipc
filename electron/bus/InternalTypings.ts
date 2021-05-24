@@ -1,9 +1,12 @@
+import { EventEmitter } from "events";
+import { IpcMain, IpcRenderer } from "electron";
+
 /////////////////////////////////////////////////////////////////////////////
 // Type for extracting properties from a dictionary which's value matches
 // a certain type (in this case, functions / not functions)
 /////////////////////////////////////////////////////////////////////////////
-type KeysMatchingType<T, Match> = ({[K in keyof T]: T[K] extends Match ? K : never})[keyof T];
-type KeysNotMatchingType<T, Match> = ({[K in keyof T]: T[K] extends Match ? never : K})[keyof T];
+type KeysMatchingType<T, Match, Keys extends keyof T = Extract<keyof T, string>> = ({[K in Keys]: T[K] extends Match ? K : never})[Keys];
+type KeysNotMatchingType<T, Match, Keys extends keyof T = Extract<keyof T, string>> = ({[K in Keys]: T[K] extends Match ? never : K})[Keys];
 
 export type ExtractFunctions<T> = Pick<T, KeysMatchingType<T, Function>>;
 export type ExtractNotFunctions<T> = Pick<T, KeysNotMatchingType<T, Function>>;
@@ -33,8 +36,48 @@ export type SubscriptionHandle = {
     unsubscribe: () => void,
 }
 
-export type WindowHandle = {
-    remove: () => void
+/////////////////////////////////////////////////////////////////////////////
+// Interface types
+/////////////////////////////////////////////////////////////////////////////
+export interface Tipc<T> {
+    on<
+        K extends keyof ExtractNotFunctions<T>,
+        V extends Typings<T,K> = Typings<T, K>
+    > (key: K, callback: (...args: V) => any): SubscriptionHandle,
+    once<
+        K extends keyof ExtractNotFunctions<T>, 
+        V extends Typings<T,K> = Typings<T, K>
+    > (key: K, callback: (...args: V) => any): SubscriptionHandle,
+    broadcast<
+        K extends keyof ExtractNotFunctions<T>,
+        V extends Typings<T,K> = Typings<T, K>
+    > (key: K, ...args: V): void,
 }
 
-export type Dictionary = Record<keyof any, any>;
+export interface TipcMain<T> extends Tipc<T> {
+    handle<
+        K extends keyof ExtractFunctions<T>, 
+        R extends ReturnType<T[K]>
+    > (channel: K, handler: (...args: Parameters<T[K]>) => R | Promise<R>): SubscriptionHandle;
+}
+
+export interface TipcRenderer<T> extends Tipc<T> {
+    invoke<
+        K extends keyof ExtractFunctions<T>, 
+        R extends ReturnType<T[K]>
+    >(channel: K, ...args: Parameters<T[K]>): Promise<R>;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Argument types
+/////////////////////////////////////////////////////////////////////////////
+export type TipcOptions = {
+    namespace?: string,
+    debug?: boolean,
+    localEmitter?: EventEmitter,
+}
+
+export type TipcInternalOptions = Required<TipcOptions> & {
+    internalId: string,
+    ipc: IpcRenderer | IpcMain
+}

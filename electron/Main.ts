@@ -1,11 +1,11 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'path';
-import { addWindow, tipc, tipcMain } from './bus/Bus';
+import { tipcMain } from './bus/Bus';
 import { A } from './shared/EventApi'
 /************************************************************************
  *  Main behaviour
  ************************************************************************/
-const bus = tipc<A>({debug: true})
+const bus = tipcMain<A>({debug: true})
 bus.on("a", (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 })
@@ -19,7 +19,22 @@ bus.once("d", () => {
     console.log(`Received -blank- on main`);
     bus.broadcast('c', {sender: 'main', data: 3});
 });
-
+bus.handle("F", (num, sender) => {
+    console.log(`Handling ${num} and ${sender} on main`);
+    return num + sender.length;
+})
+bus.handle("G", async (data, sender) => {
+    console.log(`Handling ${data} and ${sender} on main`);
+    return data + sender.length;
+})
+bus.handle("H", async (data) => {
+    console.log(`Handling ${data} on main`);
+    return new Promise<number>( (res) => setTimeout(() => res(data[0]*data[1]*data[2]), 1000) );
+})
+bus.handle("I", () => {
+    console.log(`Handling -blank- on main`);
+    return "Hello World";
+})
 
 function createWindow() {
     let window = new BrowserWindow({
@@ -35,7 +50,6 @@ function createWindow() {
         setInterval(() => bus.broadcast('b', {data: 2, sender: 'main'}), 5000)
     })
     window.webContents.openDevTools();
-    addWindow(window);
 }
 
 app.on('ready', createWindow);

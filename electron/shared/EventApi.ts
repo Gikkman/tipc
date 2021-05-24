@@ -5,7 +5,7 @@ export interface A{
     'd': void
     'F': (data: 1, sender: string) => number,
     'G': (data: 2, sender: string) => number,
-    'H': (data: 3) => number,
+    'H': (data: [number, number, number]) => number,
     'I': () => string,
     
 }
