@@ -15,59 +15,59 @@ export class TipcCoreImpl<T> implements Tipc<T>{
         this._ipcEmitter =  settings.ipc;
         this._localEmitter =  settings.localEmitter;
         this._debug = settings.debug;
-        if(this._debug) console.debug("Bus debug mode: " + this._debug);
-        if(this._debug) console.debug("Namespace: " + this._namespace);
+        if(this._debug) console.debug('Bus debug mode: ' + this._debug);
+        if(this._debug) console.debug('Namespace: ' + this._namespace);
     }
 
     on<K extends keyof T, V extends Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
         const fullKey = this.makeKey(key);
         const localCB = (wrapped: TipcEventData<V>) => {
-            this.debugLog("Received event (local):", wrapped.senderId, wrapped.topic, wrapped.eventData);
+            this.debugLog('Received event (local):', wrapped.senderId, wrapped.topic, wrapped.eventData);
             callback(...wrapped.eventData);
-        }
+        };
         const ipcCB = (_:any, wrapped: TipcEventData<V>) => {
-            this.debugLog("Received event (ipc):", wrapped.senderId, wrapped.topic, wrapped.eventData);
+            this.debugLog('Received event (ipc):', wrapped.senderId, wrapped.topic, wrapped.eventData);
             callback(...wrapped.eventData);
-        }
+        };
         this._localEmitter.on(fullKey, localCB);
         this._ipcEmitter.on(fullKey, ipcCB);
-        this.debugLog("Attaching callback:", fullKey, this._namespace)
+        this.debugLog('Attaching callback:', fullKey, this._namespace);
         return {
             unsubscribe: () => {
-                this.debugLog("Unsubscribing callback:", fullKey, this._namespace)
-                this._localEmitter.off(fullKey, localCB)
-                this._ipcEmitter.off(fullKey, ipcCB)
+                this.debugLog('Unsubscribing callback:', fullKey, this._namespace);
+                this._localEmitter.off(fullKey, localCB);
+                this._ipcEmitter.off(fullKey, ipcCB);
             }
-        }
+        };
     }
-    
+
     once<K extends keyof T, V extends Typings<T,K>>(key: K, callback: (...args: V) => any): SubscriptionHandle {
         const fullKey = this.makeKey(key);
         const localCB = (wrapped: TipcEventData<V>) => {
-            this.debugLog("Received event (local, once):", wrapped.senderId, wrapped.topic, wrapped.eventData);
+            this.debugLog('Received event (local, once):', wrapped.senderId, wrapped.topic, wrapped.eventData);
             callback(...wrapped.eventData);
-        }
+        };
         const ipcCB = (_:any, wrapped: TipcEventData<V>) => {
-            this.debugLog("Received event (ipc, once):", wrapped.senderId, wrapped.topic, wrapped.eventData);
+            this.debugLog('Received event (ipc, once):', wrapped.senderId, wrapped.topic, wrapped.eventData);
             callback(...wrapped.eventData);
-        }
+        };
         this._localEmitter.once(fullKey, localCB);
         this._ipcEmitter.once(fullKey, ipcCB);
-        this.debugLog("Attaching callback:", fullKey, this._namespace)
+        this.debugLog('Attaching callback:', fullKey, this._namespace);
         return {
             unsubscribe: () => {
-                this.debugLog("Unsubscribing callback:", fullKey, this._namespace)
-                this._localEmitter.off(fullKey, localCB)
-                this._ipcEmitter.off(fullKey, ipcCB)
+                this.debugLog('Unsubscribing callback:', fullKey, this._namespace);
+                this._localEmitter.off(fullKey, localCB);
+                this._ipcEmitter.off(fullKey, ipcCB);
             }
-        }
+        };
     }
 
     broadcast<K extends keyof T, V extends Typings<T,K>>(key: K, ...args: V): {fullKey: string, fullEvent: TipcEventData<V>} {
         const fullKey = this.makeKey(key);
         const fullEvent: TipcEventData<V> = {senderId: this._internalId, topic: fullKey, eventData: args};
-        this.debugLog("Broadcasting event:", fullEvent.topic, fullEvent.eventData);
-        
+        this.debugLog('Broadcasting event:', fullEvent.topic, fullEvent.eventData);
+
         this._localEmitter.emit(fullKey, fullEvent);
 
         return {fullKey, fullEvent};

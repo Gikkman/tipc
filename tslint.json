@@ -1,13 +1,17 @@
 {
     "rules": {
-      "indent": [true, "spaces", 2],
+      "indent": [true, "spaces", 4],
       "interface-name": false,
       "interface-over-type-literal": false,
-      "max-line-length": { "options": [100] },
+      "max-line-length": { "options": [200] },
       "object-literal-sort-keys": false,
       "quotemark": [true, "single"],
+      "semicolon": [true, "always"],
       "trailing-comma": false,
-      "ban-types": false
+      "no-trailing-whitespace": true,
+      "ban-types": false,
+      "no-console": false,
+      "prefer-for-of": false
     },
     "defaultSeverity": "error",
     "extends": [

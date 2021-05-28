@@ -12,21 +12,21 @@ export class TipcRendererImpl<T> implements TipcRenderer<T>{
     }
 
     on<
-        K extends keyof T, 
+        K extends keyof T,
         V extends Typings<T,K>
     >(key: K, callback: (...args: V) => any): SubscriptionHandle {
         return this._tipcImpl.on(key, callback);
     }
-    
+
     once<
-        K extends keyof T, 
+        K extends keyof T,
         V extends Typings<T,K>
     >(key: K, callback: (...args: V) => any): SubscriptionHandle {
         return this._tipcImpl.once(key, callback);
     }
 
     broadcast<
-        K extends keyof T, 
+        K extends keyof T,
         V extends Typings<T,K>
     >(key: K, ...args: V): void {
         const {fullKey, fullEvent} = this._tipcImpl.broadcast(key, ...args);
@@ -34,12 +34,12 @@ export class TipcRendererImpl<T> implements TipcRenderer<T>{
     }
 
     invoke<
-        K extends keyof ExtractFunctions<T>, 
+        K extends keyof ExtractFunctions<T>,
         R extends ReturnType<T[K]>,
         P extends Parameters<T[K]>,
     >(channel: K, ...args: P): Promise<R> {
         const key = this._tipcImpl.makeKey(channel);
-        this._tipcImpl.debugLog("Invoking", key, args);
+        this._tipcImpl.debugLog('Invoking', key, args);
         return this._ipcRenderer.invoke(key, args);
     }
 }

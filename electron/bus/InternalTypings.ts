@@ -1,5 +1,5 @@
-import { EventEmitter } from "events";
-import { IpcMain, IpcRenderer } from "electron";
+import { EventEmitter } from 'events';
+import { IpcMain, IpcRenderer } from 'electron';
 
 /////////////////////////////////////////////////////////////////////////////
 // Type for extracting properties from a dictionary which's value matches
@@ -30,11 +30,11 @@ export type TipcEventData<T> = {
     senderId: string,
     topic: string,
     eventData: T,
-}
+};
 
 export type SubscriptionHandle = {
     unsubscribe: () => void,
-}
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // Interface types
@@ -43,27 +43,27 @@ export interface Tipc<T> {
     on<
         K extends keyof ExtractNotFunctions<T>,
         V extends Typings<T,K> = Typings<T, K>
-    > (key: K, callback: (...args: V) => any): SubscriptionHandle,
+    > (key: K, callback: (...args: V) => any): SubscriptionHandle;
     once<
-        K extends keyof ExtractNotFunctions<T>, 
+        K extends keyof ExtractNotFunctions<T>,
         V extends Typings<T,K> = Typings<T, K>
-    > (key: K, callback: (...args: V) => any): SubscriptionHandle,
+    > (key: K, callback: (...args: V) => any): SubscriptionHandle;
     broadcast<
         K extends keyof ExtractNotFunctions<T>,
         V extends Typings<T,K> = Typings<T, K>
-    > (key: K, ...args: V): void,
+    > (key: K, ...args: V): void;
 }
 
 export interface TipcMain<T> extends Tipc<T> {
     handle<
-        K extends keyof ExtractFunctions<T>, 
+        K extends keyof ExtractFunctions<T>,
         R extends ReturnType<T[K]>
     > (channel: K, handler: (...args: Parameters<T[K]>) => R | Promise<R>): SubscriptionHandle;
 }
 
 export interface TipcRenderer<T> extends Tipc<T> {
     invoke<
-        K extends keyof ExtractFunctions<T>, 
+        K extends keyof ExtractFunctions<T>,
         R extends ReturnType<T[K]>
     >(channel: K, ...args: Parameters<T[K]>): Promise<R>;
 }
@@ -75,9 +75,9 @@ export type TipcOptions = {
     namespace?: string,
     debug?: boolean,
     localEmitter?: EventEmitter,
-}
+};
 
 export type TipcInternalOptions = Required<TipcOptions> & {
     internalId: string,
     ipc: IpcRenderer | IpcMain
-}
+};
