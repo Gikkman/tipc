@@ -1,15 +1,16 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'path';
 import { tipcMain } from './bus/Bus';
-import { A } from './shared/EventApi';
+import { A, B } from './shared/EventApi';
 /************************************************************************
  *  Main behaviour
  ************************************************************************/
 const bus = tipcMain<A>({debug: true});
+const otherBus = tipcMain<B>({debug: true, namespace: "alternative-namespace"});
 bus.on('a', (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 });
-bus.on('b', (event) => {
+otherBus.on('b', (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 });
 bus.on('c', (event) => {
@@ -27,7 +28,7 @@ bus.handle('G', async (data, sender) => {
     console.log(`Handling ${data} and ${sender} on main`);
     return data + sender.length;
 });
-bus.handle('H', async (data) => {
+otherBus.handle('H', async (data) => {
     console.log(`Handling ${data} on main`);
     return new Promise<number>( (res) => setTimeout(() => res(data[0]*data[1]*data[2]), 1000) );
 });
@@ -47,7 +48,7 @@ function createWindow() {
     window.loadFile(join(__dirname, './frontend/index.html'))
     .then(e => {
         bus.broadcast('a', {data: 1, sender: 'main'});
-        setInterval(() => bus.broadcast('b', {data: 2, sender: 'main'}), 5000);
+        setInterval(() => otherBus.broadcast('b', {data: 2, sender: 'main'}), 5000);
     });
     window.webContents.openDevTools();
 }

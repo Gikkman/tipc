@@ -1,5 +1,5 @@
 import { IpcRenderer } from 'electron';
-import { ExtractFunctions, SubscriptionHandle, TipcInternalOptions, TipcRenderer, Typings } from './InternalTypings';
+import { Args, ExtractFunctions, Ret, SubscriptionHandle, TipcInternalOptions, TipcRenderer, Typings } from './InternalTypings';
 import { TipcCoreImpl } from './TipcCoreImpl';
 
 export class TipcRendererImpl<T> implements TipcRenderer<T>{
@@ -14,32 +14,32 @@ export class TipcRendererImpl<T> implements TipcRenderer<T>{
     on<
         K extends keyof T,
         V extends Typings<T,K>
-    >(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    >(key: K, callback: (...params: V) => any): SubscriptionHandle {
         return this._tipcImpl.on(key, callback);
     }
 
     once<
         K extends keyof T,
         V extends Typings<T,K>
-    >(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    >(key: K, callback: (...params: V) => any): SubscriptionHandle {
         return this._tipcImpl.once(key, callback);
     }
 
     broadcast<
         K extends keyof T,
         V extends Typings<T,K>
-    >(key: K, ...args: V): void {
-        const {fullKey, fullEvent} = this._tipcImpl.broadcast(key, ...args);
+    >(key: K, ...params: V): void {
+        const {fullKey, fullEvent} = this._tipcImpl.broadcast(key, ...params);
         this._ipcRenderer.send(fullKey, fullEvent);
     }
 
     invoke<
         K extends keyof ExtractFunctions<T>,
-        R extends ReturnType<T[K]>,
-        P extends Parameters<T[K]>,
-    >(channel: K, ...args: P): Promise<R> {
+        R extends Ret<T,K>,
+        P extends Args<T,K>,
+    >(channel: K, ...params: P): Promise<R> {
         const key = this._tipcImpl.makeKey(channel);
-        this._tipcImpl.debugLog('Invoking', key, args);
-        return this._ipcRenderer.invoke(key, args);
+        this._tipcImpl.debugLog('Invoking', key, params);
+        return this._ipcRenderer.invoke(key, params);
     }
 }

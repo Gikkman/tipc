@@ -1,5 +1,5 @@
 import { BrowserWindow, IpcMain } from 'electron';
-import { ExtractFunctions, SubscriptionHandle, TipcInternalOptions, TipcMain, Typings } from './InternalTypings';
+import { Args as Param, ExtractFunctions, Ret, SubscriptionHandle, TipcInternalOptions, TipcMain, Typings } from './InternalTypings';
 import { TipcCoreImpl } from './TipcCoreImpl';
 
 export class TipcMainImpl<T> implements TipcMain<T> {
@@ -16,30 +16,30 @@ export class TipcMainImpl<T> implements TipcMain<T> {
     on<
         K extends keyof T,
         V extends Typings<T,K>
-    >(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    >(key: K, callback: (...params: V) => any): SubscriptionHandle {
         return this._tipcImpl.on(key, callback);
     }
 
     once<
         K extends keyof T,
         V extends Typings<T,K>
-    >(key: K, callback: (...args: V) => any): SubscriptionHandle {
+    >(key: K, callback: (...params: V) => any): SubscriptionHandle {
         return this._tipcImpl.once(key, callback);
     }
 
     broadcast<
         K extends keyof T,
         V extends Typings<T,K>
-    >(key: K, ...args: V): void {
-        const {fullKey, fullEvent} = this._tipcImpl.broadcast(key, ...args);
+    >(key: K, ...params: V): void {
+        const {fullKey, fullEvent} = this._tipcImpl.broadcast(key, ...params);
         this._windowSetGetter().forEach(win => win.webContents.send(fullKey, fullEvent));
     }
 
     handle<
         K extends keyof ExtractFunctions<T>,
-        R extends ReturnType<T[K]>,
-        P extends Parameters<T[K]>,
-    > (channel: K, handler: (...args: P) => R | Promise<R>): SubscriptionHandle {
+        R extends Ret<T,K>,
+        P extends Param<T,K>,
+    > (channel: K, handler: (...params: P) => R | Promise<R>): SubscriptionHandle {
         const key = this._tipcImpl.makeKey(channel);
         const cb = (_:any, args: P): R | Promise<R> => {
             this._tipcImpl.debugLog('Handling event', key, args);
@@ -57,9 +57,9 @@ export class TipcMainImpl<T> implements TipcMain<T> {
 
     handleOnce<
         K extends keyof ExtractFunctions<T>,
-        R extends ReturnType<T[K]>,
-        P extends Parameters<T[K]>,
-    > (channel: K, handler: (...args: P) => R | Promise<R>): SubscriptionHandle {
+        R extends Ret<T,K>,
+        P extends Param<T,K>,
+    > (channel: K, handler: (...params: P) => R | Promise<R>): SubscriptionHandle {
         const key = this._tipcImpl.makeKey(channel);
         const cb = (_:any, args: P): R | Promise<R> => {
             this._tipcImpl.debugLog('Handling event', key, args);

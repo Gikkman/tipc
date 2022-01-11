@@ -18,6 +18,7 @@ type Funcify<T> = {
     [P in keyof T]: T[P] extends Function ? T[P]: (arg: T[P]) => void
 };
 export type Args<T, K extends keyof T> = T[K] extends (...args: infer A) => any ? A : never;
+export type Ret<T, K extends keyof T> = T[K] extends (...args: any) => infer U ? U : never;
 export type Typings<T, K extends keyof T, F extends Funcify<T>= Funcify<T>> = Args<F, K>;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -57,15 +58,15 @@ export interface Tipc<T> {
 export interface TipcMain<T> extends Tipc<T> {
     handle<
         K extends keyof ExtractFunctions<T>,
-        R extends ReturnType<T[K]>
-    > (channel: K, handler: (...args: Parameters<T[K]>) => R | Promise<R>): SubscriptionHandle;
+        R extends Ret<T,K>
+    > (channel: K, handler: (...args: Args<T,K>) => R | Promise<R>): SubscriptionHandle;
 }
 
 export interface TipcRenderer<T> extends Tipc<T> {
     invoke<
         K extends keyof ExtractFunctions<T>,
-        R extends ReturnType<T[K]>
-    >(channel: K, ...args: Parameters<T[K]>): Promise<R>;
+        R extends Ret<T,K>
+    >(channel: K, ...args: Args<T,K>): Promise<R>;
 }
 
 /////////////////////////////////////////////////////////////////////////////

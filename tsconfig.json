@@ -10,10 +10,6 @@
           "@shared/*": ["shared/*"]
         },
       "strict": true
-
-  },
-  "typeAcquisition": {
-    "enable": false
   },
   "include": [
       "electron/**/*"

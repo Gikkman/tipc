@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import { EventEmitter } from 'events';
-import {BrowserWindow, ipcRenderer, ipcMain} from 'electron';
+import { BrowserWindow, ipcRenderer, ipcMain } from 'electron';
 import { TipcInternalOptions, TipcMain, TipcOptions, TipcRenderer } from './InternalTypings';
 import { TipcMainImpl } from './TipcMainImpl';
 import { TipcRendererImpl } from './TipcRendererImpl';
