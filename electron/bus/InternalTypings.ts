@@ -1,6 +1,4 @@
 import { EventEmitter } from 'events';
-import { IpcMain, IpcRenderer } from 'electron';
-
 /////////////////////////////////////////////////////////////////////////////
 // Type for extracting properties from a dictionary which's value matches
 // a certain type (in this case, functions / not functions)
@@ -72,6 +70,23 @@ export interface TipcRenderer<T> extends Tipc<T> {
 /////////////////////////////////////////////////////////////////////////////
 // Argument types
 /////////////////////////////////////////////////////////////////////////////
+export type InterProcessCommunicator = {
+    on(channel: string, listener: (ignored: any, ...args: any[]) => void): void;
+    once(channel: string, listener: (ignored: any, ...args: any[]) => void): void;
+    off(channel: string, listener: (ignored: any, ...args: any[]) => void): void;
+}
+
+export type ServerInterProcessCommunicator = {
+    handle(channel: string, listener: (ignored: any, ...args: any[]) => (Promise<void>) | (any)): void;
+    handleOnce(channel: string, listener: (ignored: any, ...args: any[]) => (Promise<void>) | (any)): void;
+    removeHandler(channel: string): void;
+} & InterProcessCommunicator;
+
+export type ClientInterProcessCommunicator = {
+    send(channel: string, ...args: any[]): void;
+    invoke(channel: string, ...args: any[]): Promise<any>;
+} & InterProcessCommunicator;
+
 export type TipcOptions = {
     namespace?: string,
     debug?: boolean,
@@ -80,5 +95,5 @@ export type TipcOptions = {
 
 export type TipcInternalOptions = Required<TipcOptions> & {
     internalId: string,
-    ipc: IpcRenderer | IpcMain
+    ipc: InterProcessCommunicator
 };

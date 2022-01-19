@@ -1,12 +1,11 @@
-import { IpcRenderer } from 'electron';
-import { Args, ExtractFunctions, Ret, SubscriptionHandle, TipcInternalOptions, TipcRenderer, Typings } from './InternalTypings';
+import { Args, ClientInterProcessCommunicator, ExtractFunctions, Ret, SubscriptionHandle, TipcInternalOptions, TipcRenderer, Typings } from './InternalTypings';
 import { TipcCoreImpl } from './TipcCoreImpl';
 
 export class TipcRendererImpl<T> implements TipcRenderer<T>{
     private _tipcImpl: TipcCoreImpl<T>;
-    private _ipcRenderer: IpcRenderer;
+    private _ipcRenderer: ClientInterProcessCommunicator;
 
-    constructor(settings: TipcInternalOptions & {ipc: IpcRenderer}) {
+    constructor(settings: TipcInternalOptions & {ipc: ClientInterProcessCommunicator}) {
         this._tipcImpl = new TipcCoreImpl<T>(settings);
         this._ipcRenderer = settings.ipc;
     }

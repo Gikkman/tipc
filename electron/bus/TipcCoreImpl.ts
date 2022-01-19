@@ -1,11 +1,10 @@
-import { IpcMain, IpcRenderer } from 'electron';
 import { EventEmitter } from 'events';
-import { SubscriptionHandle, Tipc, TipcEventData, TipcInternalOptions, Typings } from './InternalTypings';
+import { SubscriptionHandle, Tipc, TipcEventData, TipcInternalOptions, Typings, InterProcessCommunicator } from './InternalTypings';
 
 export class TipcCoreImpl<T> implements Tipc<T>{
     private _internalId: string;
     private _namespace: string;
-    private _ipcEmitter: IpcMain | IpcRenderer;
+    private _ipcEmitter: InterProcessCommunicator;
     private _localEmitter: EventEmitter;
     private _debug: boolean;
 
@@ -74,7 +73,7 @@ export class TipcCoreImpl<T> implements Tipc<T>{
     }
 
     makeKey(key: string|symbol|number) {
-        return `${this._namespace}\\\\${key.toString()}`;
+        return `${this._namespace}::${key.toString()}`;
     }
 
     debugLog(...data: (string|object)[]) {

@@ -1,13 +1,13 @@
-import { BrowserWindow, IpcMain } from 'electron';
-import { Args as Param, ExtractFunctions, Ret, SubscriptionHandle, TipcInternalOptions, TipcMain, Typings } from './InternalTypings';
+import { BrowserWindow } from 'electron';
+import { Args as Param, ExtractFunctions, Ret, ServerInterProcessCommunicator, SubscriptionHandle, TipcInternalOptions, TipcMain, Typings } from './InternalTypings';
 import { TipcCoreImpl } from './TipcCoreImpl';
 
 export class TipcMainImpl<T> implements TipcMain<T> {
     private _tipcImpl: TipcCoreImpl<T>;
-    private _ipcMain: IpcMain;
+    private _ipcMain: ServerInterProcessCommunicator;
     private _windowSetGetter: () => BrowserWindow[];
 
-    constructor(settings: TipcInternalOptions & {ipc: IpcMain} , windowSetGetter: () => BrowserWindow[],) {
+    constructor(settings: TipcInternalOptions & {ipc: ServerInterProcessCommunicator} , windowSetGetter: () => BrowserWindow[],) {
         this._tipcImpl = new TipcCoreImpl<T>(settings);
         this._ipcMain = settings.ipc;
         this._windowSetGetter = windowSetGetter;
