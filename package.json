@@ -11,16 +11,15 @@
   "scripts": {
     "prestart": "npm run compile",
     "start": "electron .",
-    "compile": "tsc && tscpaths -p tsconfig.json -s ./electron -o ./_compile",
-    "postcompile": "copyfiles -u 1 electron/**/*.html electron/**/*.css _compile/"
+    "compile": "tsc",
+    "postcompile": "copyfiles -u 1 electron/**/*.html electron/**/*.css _compile/",
+    "lint": "eslint electron/**/*.ts"
   },
   "keywords": [],
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
     "copyfiles": "^2.4.1",
-    "electron": "^12.2.3",
-    "tscpaths": "0.0.9",
-    "tslint": "^6.1.3",
-    "typescript": "^4.5.4"
+    "electron": "^19.0.8",
+    "typescript": "^4.7.4"
   }
 }
