@@ -6,7 +6,7 @@ import { A, B } from './shared/EventApi';
  *  Main behaviour
  ************************************************************************/
 const bus = tipcMain<A>({debug: true});
-const otherBus = tipcMain<B>({debug: true, namespace: "alternative-namespace"});
+const otherBus = tipcMain<B>({debug: true, namespace: "alternative"});
 bus.on('a', (event) => {
     console.log(`Received ${event.data} from ${event.sender} on main`);
 });

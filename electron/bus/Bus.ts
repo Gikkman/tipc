@@ -14,7 +14,7 @@ const processType = process.type;
 
 const defaultTipcOptions: Omit<TipcInternalOptions, 'ipc'> = {
     internalId,
-    namespace: 'default-namespace',
+    namespace: 'default',
     localEmitter,
     debug: false,
 };
