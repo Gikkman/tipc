@@ -18,7 +18,35 @@
       
       
       "outputCapture": "std",
-      "internalConsoleOptions": "openOnSessionStart"
+      "internalConsoleOptions": "openOnSessionStart",
+      "env": {
+        "JASMINE_TIMEOUT": "3600000",
+        "TIPC_CHECK_CONNECTION_TIMEOUT": "false"
+      }
+    },
+    {
+      "name": "Test this file",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": [
+        "run",
+        "test",
+        "${file}"
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "smartStep": true,
+      "sourceMaps": true,
+      
+      
+      "outputCapture": "std",
+      "internalConsoleOptions": "openOnSessionStart",
+      "env": {
+        "JASMINE_TIMEOUT": "3600000",
+        "TIPC_CHECK_CONNECTION_TIMEOUT": "false"
+      }
     }
   ],
   "compounds": []
