@@ -1,6 +1,6 @@
 export type Callback = (...args: any[]) => any;
 export type WrappedCallback = {multiUse: boolean, callback: Callback}
-export type Key = string|symbol|number;
+export type Key = string;
 
 export type TipcSubscription = {
     unsubscribe: () => void,
@@ -21,8 +21,8 @@ export type TipcSendObject = {
 } & TipcMessageBase;
 export type TipcErrorObject = {
     method: "error",
-}
-export type TipcMessageObject = TipcSendObject | TipcInvokeObject;
+} & TipcMessageBase;
+export type TipcMessageObject = TipcSendObject | TipcInvokeObject | TipcErrorObject;
 
 export type TipcServer = {
     broadcast(namespace: string, key: string, ...args: any[]): void,

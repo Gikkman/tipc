@@ -1,16 +1,28 @@
 import { randomUUID } from "crypto";
-import { WebSocket } from "ws";
-import { Callback, WrappedCallback, Key, TipcMessageObject } from "./Types";
+import { AddressInfo, WebSocket } from "ws";
+import { Callback, WrappedCallback, Key, TipcMessageObject, TipcSubscription, TipcErrorObject } from "./Types";
 
 export class TipcNodeClient {
+    protected host: string;
+    protected port: number;
     protected ws?: WebSocket;
 
     protected sendListeners: Map<string, WrappedCallback[]> = new Map();
     protected invokeWaiters: Map<string, Callback> = new Map();
 
-    constructor() {}
+    constructor(url: AddressInfo|{address:string, port:number}) {
+        this.host = url.address;
+        this.port = url.port;
+    }
 
-    public async startup(url: string) {
+    public static async create(url: {address:string, port:number}) {
+        const instance = new TipcNodeClient(url);
+        await instance.startup();
+        return instance;
+    }
+
+    public async startup() {
+        const url = `ws://${this.host}:${this.port}`
         this.ws = await this.initWs(url);
     }
     
@@ -32,7 +44,7 @@ export class TipcNodeClient {
         function heartbeat() {
             clearTimeout(pingTimeout);
             pingTimeout = setTimeout(() => {
-                console.log("Client: Terminating server connection due to timeout")
+                // console.log("Client: Terminating server connection due to timeout")
                 ws.terminate();
             }, 45_000);
         }
@@ -52,11 +64,14 @@ export class TipcNodeClient {
                 this.callListeners(obj.namespace, obj.key, ...obj.data);
             }
         })
-        ws.on('close', () => { console.log("Client: Closed"); clearTimeout(pingTimeout)})
+        ws.on('close', () => { 
+            // console.log("Client: Closed"); 
+            clearTimeout(pingTimeout);
+        })
         
         return new Promise<WebSocket>((resolve) => {
             ws.once('open', () => {
-                console.log("Client: Open")
+                // console.log("Client: Open")
                 resolve(ws)
             })
         })
@@ -66,11 +81,11 @@ export class TipcNodeClient {
     // Event listeners
     ////////////////////////////////////////////////////////////
     addListener(namespace: string, key: Key, callback: Callback) {
-        this.addListenerInternal(namespace, key, {multiUse: true, callback})
+        return this.addListenerInternal(namespace, key, {multiUse: true, callback})
     }
 
     addOnceListener(namespace: string, key: Key, callback: Callback) {
-        this.addListenerInternal(namespace, key, {multiUse: false, callback})
+        return this.addListenerInternal(namespace, key, {multiUse: false, callback})
     }
 
     removeListener(namespace: string, key: Key, callback: Callback) {
@@ -93,11 +108,15 @@ export class TipcNodeClient {
         })
     }
 
-    private addListenerInternal(namespace: string, key: Key, callback: WrappedCallback) {
+    private addListenerInternal(namespace: string, key: Key, callback: WrappedCallback): TipcSubscription {
         const fullKey = this.makeKey(namespace, key);
         const listeners = this.sendListeners.get(fullKey) ?? [];
         listeners.push(callback);
         this.sendListeners.set(fullKey, listeners);
+        return {unsubscribe: () => {
+            const filtered = (this.sendListeners.get(fullKey) ?? []).filter(cb => cb !== callback)
+            this.sendListeners.set(fullKey, filtered)
+        }}
     }
     
     /////////////////////////////////////////////////////////////
@@ -112,12 +131,16 @@ export class TipcNodeClient {
             data: args,
             messageId,
         }
-        const promise = new Promise<any>(res => {
-            this.addOnceListener(namespace, messageId, (data) => res(data))
+        const promise = new Promise<any>((resolve, reject) => {
+            this.addOnceListener(namespace, messageId, (data: any[]) => {
+                // console.log(data)
+                // TODO: Fix rejecting if we receive an error
+                resolve(data)
+            })
         })
         this.ws?.send(JSON.stringify(message), (err) => {
             if(err) console.error(err)
-            else console.log("Message sent OK")
+            // else console.log("Message sent OK")
         });
         return promise;
     }
@@ -131,9 +154,18 @@ export class TipcNodeClient {
 
     private validateMessageObject(obj: any): obj is TipcMessageObject {
         const temp = obj as TipcMessageObject;
-        return (!!temp.namespace) 
-            && (!!temp.key) 
-            && (temp.method==="send"||temp.method==="broadcast"||temp.method==="invoke");
+        const primary = (!!temp.namespace) 
+                        && (!!temp.key) 
+                        && (temp.method==="send"
+                            ||temp.method==="broadcast"
+                            ||temp.method==="invoke"
+                            ||temp.method==="error");
+        // TipcInvokeObject has an additional property, messageId
+        if(primary && temp.method==="invoke") {
+            return (!!temp.messageId)
+        } else {
+            return primary
+        }
     }
 
     private callListeners(namespace: string, key: Key, ...args: any) {

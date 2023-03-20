@@ -1,10 +1,24 @@
 import { WebSocketServer, WebSocket, AddressInfo } from "ws";
-import { Callback, WrappedCallback, TipcMessageObject, Key, TipcInvokeObject, TipcSubscription } from "./Types";
+import { Callback, WrappedCallback, TipcMessageObject, Key, TipcInvokeObject, TipcSubscription, TipcErrorObject, TipcSendObject } from "./Types";
 import { Server as HTTPServer } from "http";
 import { Server as HTTPSServer } from "https";
 
+/**
+ * **Tipc Server Options**
+ * 
+ * When specifying {noWsServer: true}, no Sebsocket server will be created, and you can use the Tipc instance
+ * as a pure pub/sub system.
+ * 
+ * When supplying a host and port, a new Websocket server instance will be create. This instance will
+ * be managed by Tipc and properly shutdown once the `shutdown()` method is called. To use a random port, supply
+ * port number `0`.
+ * 
+ * When supplying a HTTPServer, Tipc will create a Websocket server from that HTTPServer. The Websocket server
+ * will be managed by Tipc, but if the HTTPServer is closed externally, the Websocket server will cease to
+ * function.
+ */
 export type TipcServerOptions = {checkTimeouts?: boolean} & 
-    ({noServer: true} | { host: string, port: number} | {server: HTTPServer | HTTPSServer})
+    ({noWsServer: true} | { host: string, port: number} | {server: HTTPServer | HTTPSServer})
 
 export class TipcNodeServer {
     private wss?: WebSocketServer;
@@ -14,7 +28,7 @@ export class TipcNodeServer {
     protected invokeListeners: Map<string, WrappedCallback> = new Map();
 
     protected constructor(options?: TipcServerOptions) {
-        this.options = { checkTimeouts: false, ...(options ?? {noServer: true}) }
+        this.options = { checkTimeouts: false, ...(options ?? {noWsServer: true}) }
     }
 
     public static async create(options?: TipcServerOptions) {
@@ -29,7 +43,9 @@ export class TipcNodeServer {
     }
 
     public getAddressInfo() {
-        return (this.wss?.address() as AddressInfo) ?? undefined;
+        const address = this.wss?.address();
+        if(address) return address as AddressInfo
+        return undefined
     }
 
     public async shutdown() {
@@ -74,7 +90,7 @@ export class TipcNodeServer {
     // Websocket stuff
     ////////////////////////////////////////////////////////////
     private initWss() {
-        if("noServer" in this.options) {
+        if("noWsServer" in this.options) {
             return new Promise<void>(r => r())
         }
 
@@ -206,22 +222,22 @@ export class TipcNodeServer {
     // Invokation listeners
     ////////////////////////////////////////////////////////////
     addHandler(namespace: string, key: Key, callback: Callback) {
-        return this.addHandlerInternal(namespace, key, {multiUse: false, callback})
+        return this.addHandlerInternal(namespace, key, {multiUse: true, callback})
     }
     
     addOnceHandler(namespace: string, key: Key, callback: Callback) {
-        return this.addHandlerInternal(namespace, key, {multiUse: true, callback})
+        return this.addHandlerInternal(namespace, key, {multiUse: false, callback})
     }
     
     protected callHandler(caller:  WebSocket, obj: TipcInvokeObject) {
         const fullKey = this.makeKey(obj.namespace, obj.key);
-        const c = this.invokeListeners.get(fullKey);
-        if(c && c.multiUse) this.invokeListeners.delete(fullKey);
+        const handler = this.invokeListeners.get(fullKey);
+        if(handler && !handler.multiUse) this.invokeListeners.delete(fullKey);
         setImmediate(() => {
-            if(c) {
+            if(handler) {
                 try {
-                    const result = c.callback(...obj.data);
-                    const reply: TipcMessageObject = {
+                    const result = handler.callback(...obj.data);
+                    const reply: TipcSendObject = {
                         data: [result],
                         namespace: obj.namespace,
                         key: obj.messageId,
@@ -233,7 +249,15 @@ export class TipcNodeServer {
                 }
             }
             else {
-                console.warn(`No handler defined for namespace ${obj.namespace} and key ${obj.key.toString()}`);
+                const msg = `No handler defined for namespace ${obj.namespace} and key ${obj.key.toString()}`;
+                const reply: TipcErrorObject = {
+                    data: [msg],
+                    namespace: obj.namespace,
+                    key: obj.messageId,
+                    method: "error",
+                }
+                caller.send(JSON.stringify(reply))
+                console.log(msg)
             }
         })
     }
