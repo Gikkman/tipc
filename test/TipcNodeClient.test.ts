@@ -219,7 +219,7 @@ describe("Test TipcNodeClient.invoke", () => {
             await client.invoke("ns", "does-not-exist")
             fail("Above should reject")
         } catch (e) {
-            expect(e).toBeDefined()
+            expect(e).toBe("No handler defined for namespace ns and key does-not-exist")
         }
     })
 })

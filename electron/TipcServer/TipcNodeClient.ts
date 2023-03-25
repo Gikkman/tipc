@@ -61,7 +61,10 @@ export class TipcNodeClient {
                 return;
             }
             if( this.validateMessageObject(obj) ) {
-                this.callListeners(obj.namespace, obj.key, ...obj.data);
+                if(obj.method === "error") 
+                    this.callListeners(obj.namespace, "error-"+obj.key, ...obj.data);
+                else
+                    this.callListeners(obj.namespace, obj.key, ...obj.data);
             }
         })
         ws.on('close', () => { 
@@ -132,10 +135,14 @@ export class TipcNodeClient {
             messageId,
         }
         const promise = new Promise<any>((resolve, reject) => {
-            this.addOnceListener(namespace, messageId, (data: any[]) => {
-                // console.log(data)
-                // TODO: Fix rejecting if we receive an error
+            let res: TipcSubscription, rej: TipcSubscription;
+            res = this.addOnceListener(namespace, messageId, (data: any[]) => {
                 resolve(data)
+                rej?.unsubscribe()
+            })
+            rej = this.addOnceListener(namespace, "error-"+messageId, (data: any[]) => {
+                reject(data)
+                res?.unsubscribe()
             })
         })
         this.ws?.send(JSON.stringify(message), (err) => {
