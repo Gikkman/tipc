@@ -223,4 +223,19 @@ describe("Test TipcNodeClient.invoke", () => {
         }
         expect(client['sendListeners'].size).toBe(0)
     })
+
+    it("will return error if server throws exception", async () => {
+        const [server, client] = await setupServerClient();
+        server.addHandler("ns", "throw-exception", () => {
+            throw "Exception occurred"
+        })
+
+        try {
+            await client.invoke("ns", "throw-exception")
+            fail("Above should reject")
+        } catch (e) {
+            expect(e).toContain("A server-side exception occurred")
+        }
+        expect(client['sendListeners'].size).toBe(0)
+    })
 })

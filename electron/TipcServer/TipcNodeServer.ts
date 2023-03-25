@@ -199,7 +199,12 @@ export class TipcNodeServer {
         const fullKey = this.makeKey(namespace, key);
         const listeners = this.sendListeners.get(fullKey) ?? [];
         const filtered = listeners.filter(c => c.multiUse);
-        this.sendListeners.set(fullKey, filtered);
+        if(filtered.length===0) {
+            this.sendListeners.delete(fullKey)
+        }
+        else {
+            this.sendListeners.set(fullKey, filtered);
+        }
         listeners.forEach(c => {
             setImmediate(() => {
                 c.callback(...args)
@@ -214,7 +219,11 @@ export class TipcNodeServer {
         this.sendListeners.set(fullKey, listeners);
         return {unsubscribe: () => {
             const filtered = (this.sendListeners.get(fullKey) ?? []).filter(cb => cb !== callback)
-            this.sendListeners.set(fullKey, filtered)
+            if(filtered.length===0){
+                this.sendListeners.delete(fullKey)
+            } else {
+                this.sendListeners.set(fullKey, filtered)
+            }
         }}
     }
     
@@ -245,7 +254,16 @@ export class TipcNodeServer {
                     }
                     caller.send(JSON.stringify(reply))
                 } catch (e) {
-                    console.error(e)
+                    const msg = `A server-side exception occurred. Please see the server logs for message Id ${obj.messageId}`;
+                    const reply: TipcErrorObject = {
+                        data: [msg],
+                        namespace: obj.namespace,
+                        key: obj.messageId,
+                        method: "error",
+                    }
+                    caller.send(JSON.stringify(reply))
+                    // console.error(`An error occurred when handling a websocket invokation. Message Id: ${obj.messageId}`)
+                    // console.error(e)
                 }
             }
             else {
