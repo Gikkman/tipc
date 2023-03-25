@@ -191,7 +191,7 @@ describe("Test TipcNodeClient.invoke", () => {
 
     it("will call invoke handler and return object", async () => {
         const [server, client] = await setupServerClient();
-        server.addHandler("ns", "invoke-handler-obj", (n) => {num: n});
+        server.addHandler("ns", "invoke-handler-obj", (n) => ({num: n}));
         
         const val1 = await client.invoke("ns", "invoke-handler-obj", 1);
         expect(val1.num).toBe(1)
@@ -215,6 +215,11 @@ describe("Test TipcNodeClient.invoke", () => {
     
     it("will return error if no handler exists", async () => {
         const [_, client] = await setupServerClient();
-        expectAsync(client.invoke("ns", "does-not-exist")).toBeRejected();
+        try {
+            await client.invoke("ns", "does-not-exist")
+            fail("Above should reject")
+        } catch (e) {
+            expect(e).toBeDefined()
+        }
     })
 })
