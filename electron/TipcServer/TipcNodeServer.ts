@@ -257,7 +257,7 @@ export class TipcNodeServer {
                     method: "error",
                 }
                 caller.send(JSON.stringify(reply))
-                console.log(msg)
+                // console.log(msg)
             }
         })
     }

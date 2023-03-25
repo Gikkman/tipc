@@ -61,7 +61,10 @@ export class TipcNodeClient {
                 return;
             }
             if( this.validateMessageObject(obj) ) {
-                this.callListeners(obj.namespace, obj.key, ...obj.data);
+                if(obj.method === "error") 
+                    this.callListeners(obj.namespace, "error-"+obj.key, ...obj.data);
+                else
+                    this.callListeners(obj.namespace, obj.key, ...obj.data);
             }
         })
         ws.on('close', () => { 
@@ -115,7 +118,11 @@ export class TipcNodeClient {
         this.sendListeners.set(fullKey, listeners);
         return {unsubscribe: () => {
             const filtered = (this.sendListeners.get(fullKey) ?? []).filter(cb => cb !== callback)
-            this.sendListeners.set(fullKey, filtered)
+            if(filtered.length===0){
+                this.sendListeners.delete(fullKey)
+            } else {
+                this.sendListeners.set(fullKey, filtered)
+            }
         }}
     }
     
@@ -132,10 +139,14 @@ export class TipcNodeClient {
             messageId,
         }
         const promise = new Promise<any>((resolve, reject) => {
-            this.addOnceListener(namespace, messageId, (data: any[]) => {
-                // console.log(data)
-                // TODO: Fix rejecting if we receive an error
+            let res: TipcSubscription, rej: TipcSubscription;
+            res = this.addOnceListener(namespace, messageId, (data: any[]) => {
                 resolve(data)
+                rej?.unsubscribe()
+            })
+            rej = this.addOnceListener(namespace, "error-"+messageId, (data: any[]) => {
+                reject(data)
+                res?.unsubscribe()
             })
         })
         this.ws?.send(JSON.stringify(message), (err) => {
@@ -172,7 +183,12 @@ export class TipcNodeClient {
         const fullKey = this.makeKey(namespace, key)
         const listeners = this.sendListeners.get(fullKey) ?? [];
         const filtered = listeners.filter(c => c.multiUse);
-        this.sendListeners.set(fullKey, filtered);
+        if(filtered.length===0) {
+            this.sendListeners.delete(fullKey)
+        }
+        else {
+            this.sendListeners.set(fullKey, filtered);
+        }
         listeners.forEach(c => c.callback(...args));
     }
 }
