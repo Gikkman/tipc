@@ -168,7 +168,6 @@ export class TipcNodeClient {
         const primary = (!!temp.namespace) 
                         && (!!temp.key) 
                         && (temp.method==="send"
-                            ||temp.method==="broadcast"
                             ||temp.method==="invoke"
                             ||temp.method==="error");
         // TipcInvokeObject has an additional property, messageId

@@ -17,7 +17,7 @@ export type TipcInvokeObject = {
     messageId: string,
 } & TipcMessageBase;
 export type TipcSendObject = {
-    method: "send"|"broadcast",
+    method: "send",
 } & TipcMessageBase;
 export type TipcErrorObject = {
     method: "error",

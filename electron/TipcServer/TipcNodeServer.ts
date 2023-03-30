@@ -149,9 +149,17 @@ export class TipcNodeServer {
 
     private validateMessageObject(obj: any): obj is TipcMessageObject {
         const temp = obj as TipcMessageObject;
-        return (!!temp.namespace) 
-            && (!!temp.key) 
-            && (temp.method==="broadcast"||temp.method==="invoke");
+        const primary = (!!temp.namespace) 
+                        && (!!temp.key) 
+                        && (temp.method==="send"
+                            ||temp.method==="invoke"
+                            ||temp.method==="error");
+        // TipcInvokeObject has an additional property, messageId
+        if(primary && temp.method==="invoke") {
+            return (!!temp.messageId)
+        } else {
+            return primary
+        }
     }
 
     private handleWebsocketMessage(obj: TipcMessageObject, ws: WebSocket) {
@@ -160,13 +168,6 @@ export class TipcNodeServer {
         }
         else if ( obj.method === "send" ) {
             this.callListeners(obj.namespace, obj.key, ...obj.data)
-        }
-        else if ( obj.method === "broadcast" ) {
-            this.callListeners(obj.namespace, obj.key, ...obj.data)
-            this.wss?.clients.forEach(sock => {
-                if(sock === ws) return;
-                sock.send(obj)
-            })
         }
     }
 
@@ -186,7 +187,7 @@ export class TipcNodeServer {
             data: args,
             namespace: namespace,
             key: key.toString(),
-            method: "broadcast",
+            method: "send",
         }
         const str = JSON.stringify(message)
         this.wss?.clients.forEach(ws => {
