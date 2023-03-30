@@ -1,7 +1,9 @@
 import { WebSocketServer, WebSocket, AddressInfo } from "ws";
-import { Callback, WrappedCallback, TipcMessageObject, Key, TipcInvokeObject, TipcSubscription, TipcErrorObject, TipcSendObject } from "./Types";
+import { Callback, WrappedCallback, TipcMessageObject, Key, TipcSubscription, TipcInvokeObject } from "./Types";
 import { Server as HTTPServer } from "http";
 import { Server as HTTPSServer } from "https";
+import { makeKey, makeTipcErrorObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
+import { TipcListenerComponent } from "./TipcListenerComponent";
 
 /**
  * **Tipc Server Options**
@@ -24,7 +26,7 @@ export class TipcNodeServer {
     private wss?: WebSocketServer;
     private options: TipcServerOptions
 
-    protected sendListeners: Map<string, WrappedCallback[]> = new Map();
+    protected tipcListenerComponent = new TipcListenerComponent()
     protected invokeListeners: Map<string, WrappedCallback> = new Map();
 
     protected constructor(options?: TipcServerOptions) {
@@ -35,11 +37,6 @@ export class TipcNodeServer {
         const server = new TipcNodeServer(options);
         await server.initWss();
         return server;
-    }
-
-    protected clear() {
-        this.sendListeners.clear();
-        this.invokeListeners.clear();
     }
 
     public getAddressInfo() {
@@ -108,7 +105,7 @@ export class TipcNodeServer {
                     console.error("Server: Could not JSON parse message: " + msg)
                     return;
                 }
-                if( this.validateMessageObject(obj) ) {
+                if( validateMessageObject(obj) ) {
                     this.handleWebsocketMessage(obj, ws);
                 }
             })
@@ -147,27 +144,12 @@ export class TipcNodeServer {
         })
     }
 
-    private validateMessageObject(obj: any): obj is TipcMessageObject {
-        const temp = obj as TipcMessageObject;
-        const primary = (!!temp.namespace) 
-                        && (!!temp.key) 
-                        && (temp.method==="send"
-                            ||temp.method==="invoke"
-                            ||temp.method==="error");
-        // TipcInvokeObject has an additional property, messageId
-        if(primary && temp.method==="invoke") {
-            return (!!temp.messageId)
-        } else {
-            return primary
-        }
-    }
-
     private handleWebsocketMessage(obj: TipcMessageObject, ws: WebSocket) {
         if( obj.method === "invoke" ) {
             this.callHandler(ws, obj)
         }
         else if ( obj.method === "send" ) {
-            this.callListeners(obj.namespace, obj.key, ...obj.data)
+            this.tipcListenerComponent.callListeners(obj.namespace, obj.key, ...obj.data)
         }
     }
 
@@ -175,57 +157,20 @@ export class TipcNodeServer {
     // Event listeners
     ////////////////////////////////////////////////////////////
     addListener(namespace: string, key: Key, callback: Callback) {
-        return this.addListenerInternal(namespace, key, {multiUse: true, callback})
+        return this.tipcListenerComponent.addListener(namespace, key, {multiUse: true, callback})
     }
 
     addOnceListener(namespace: string, key: Key, callback: Callback) {
-        return this.addListenerInternal(namespace, key, {multiUse: false, callback})
+        return this.tipcListenerComponent.addListener(namespace, key, {multiUse: false, callback})
     }
 
-    broadcast(namespace: string, key: Key, ...args: any[]) {
-        const message: TipcMessageObject = {
-            data: args,
-            namespace: namespace,
-            key: key.toString(),
-            method: "send",
-        }
+    broadcast(namespace: string, key: string, ...args: any[]) {
+        const message = makeTipcSendObject(namespace, key, ...args)
         const str = JSON.stringify(message)
         this.wss?.clients.forEach(ws => {
             ws.send(str)
         })
-        this.callListeners(namespace, key, ...args)
-    }
-
-    protected callListeners(namespace: string, key: Key, ...args: any[]) {
-        const fullKey = this.makeKey(namespace, key);
-        const listeners = this.sendListeners.get(fullKey) ?? [];
-        const filtered = listeners.filter(c => c.multiUse);
-        if(filtered.length===0) {
-            this.sendListeners.delete(fullKey)
-        }
-        else {
-            this.sendListeners.set(fullKey, filtered);
-        }
-        listeners.forEach(c => {
-            setImmediate(() => {
-                c.callback(...args)
-            })
-        });
-    }
-
-    private addListenerInternal(namespace: string, key: Key, callback: WrappedCallback): TipcSubscription {
-        const fullKey = this.makeKey(namespace, key);
-        const listeners = this.sendListeners.get(fullKey) ?? [];
-        listeners.push(callback);
-        this.sendListeners.set(fullKey, listeners);
-        return {unsubscribe: () => {
-            const filtered = (this.sendListeners.get(fullKey) ?? []).filter(cb => cb !== callback)
-            if(filtered.length===0){
-                this.sendListeners.delete(fullKey)
-            } else {
-                this.sendListeners.set(fullKey, filtered)
-            }
-        }}
+        this.tipcListenerComponent.callListeners(namespace, key, ...args)
     }
     
     /////////////////////////////////////////////////////////////
@@ -240,49 +185,32 @@ export class TipcNodeServer {
     }
     
     protected callHandler(caller:  WebSocket, obj: TipcInvokeObject) {
-        const fullKey = this.makeKey(obj.namespace, obj.key);
+        const fullKey = makeKey(obj.namespace, obj.key);
         const handler = this.invokeListeners.get(fullKey);
         if(handler && !handler.multiUse) this.invokeListeners.delete(fullKey);
         setImmediate(() => {
+            // Replies to an invokation is sent to the same namespace with the messageId as key
             if(handler) {
                 try {
                     const result = handler.callback(...obj.data);
-                    const reply: TipcSendObject = {
-                        data: [result],
-                        namespace: obj.namespace,
-                        key: obj.messageId,
-                        method: "send",
-                    }
+                    const reply = makeTipcSendObject(obj.namespace, obj.messageId, result)
                     caller.send(JSON.stringify(reply))
                 } catch (e) {
                     const msg = `A server-side exception occurred. Please see the server logs for message Id ${obj.messageId}`;
-                    const reply: TipcErrorObject = {
-                        data: [msg],
-                        namespace: obj.namespace,
-                        key: obj.messageId,
-                        method: "error",
-                    }
+                    const reply = makeTipcErrorObject(obj.namespace, obj.messageId, msg)
                     caller.send(JSON.stringify(reply))
-                    // console.error(`An error occurred when handling a websocket invokation. Message Id: ${obj.messageId}`)
-                    // console.error(e)
                 }
             }
             else {
                 const msg = `No handler defined for namespace ${obj.namespace} and key ${obj.key.toString()}`;
-                const reply: TipcErrorObject = {
-                    data: [msg],
-                    namespace: obj.namespace,
-                    key: obj.messageId,
-                    method: "error",
-                }
+                const reply = makeTipcErrorObject(obj.namespace, obj.messageId, msg)
                 caller.send(JSON.stringify(reply))
-                // console.log(msg)
             }
         })
     }
 
     private addHandlerInternal(namespace: string, key: Key, callback: WrappedCallback): TipcSubscription {
-        const fullKey = this.makeKey(namespace, key);
+        const fullKey = makeKey(namespace, key);
         if( this.invokeListeners.has(fullKey) ) {
             throw new Error(`Cannot register handler for key ${key.toString()} in namespace ${namespace}. A handler is already registered with these properties`);
         }
@@ -291,13 +219,5 @@ export class TipcNodeServer {
             if(this.invokeListeners.get(fullKey) === callback)
                 this.invokeListeners.delete(fullKey)
         }}
-    }
-
-    /////////////////////////////////////////////////////////////
-    // Internals
-    ////////////////////////////////////////////////////////////
-
-    protected makeKey(namespace: string, key: Key) {
-        return `${namespace}::${key.toString()}`;
     }
 }

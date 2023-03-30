@@ -3,6 +3,9 @@ export type WrappedCallback = {multiUse: boolean, callback: Callback}
 export type Key = string;
 
 export type TipcSubscription = {
+    /**
+     * Removes a tipc subscription
+     */
     unsubscribe: () => void,
 };
 

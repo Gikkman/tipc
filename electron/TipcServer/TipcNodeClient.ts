@@ -1,14 +1,14 @@
-import { randomUUID } from "crypto";
 import { AddressInfo, WebSocket } from "ws";
-import { Callback, WrappedCallback, Key, TipcMessageObject, TipcSubscription, TipcErrorObject } from "./Types";
+import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
+import { TipcListenerComponent } from "./TipcListenerComponent";
+import { Callback, TipcSubscription } from "./Types";
 
 export class TipcNodeClient {
     protected host: string;
     protected port: number;
     protected ws?: WebSocket;
 
-    protected sendListeners: Map<string, WrappedCallback[]> = new Map();
-    protected invokeWaiters: Map<string, Callback> = new Map();
+    protected tipcListenerComponent = new TipcListenerComponent()
 
     constructor(url: AddressInfo|{address:string, port:number}) {
         this.host = url.address;
@@ -44,7 +44,6 @@ export class TipcNodeClient {
         function heartbeat() {
             clearTimeout(pingTimeout);
             pingTimeout = setTimeout(() => {
-                // console.log("Client: Terminating server connection due to timeout")
                 ws.terminate();
             }, 45_000);
         }
@@ -60,21 +59,19 @@ export class TipcNodeClient {
                 console.error("Server: Could not JSON parse message: " + msg)
                 return;
             }
-            if( this.validateMessageObject(obj) ) {
+            if( validateMessageObject(obj) ) {
                 if(obj.method === "error") 
-                    this.callListeners(obj.namespace, "error-"+obj.key, ...obj.data);
+                    this.tipcListenerComponent.callListeners(obj.namespace, "error-"+obj.key, ...obj.data);
                 else
-                    this.callListeners(obj.namespace, obj.key, ...obj.data);
+                    this.tipcListenerComponent.callListeners(obj.namespace, obj.key, ...obj.data);
             }
         })
         ws.on('close', () => { 
-            // console.log("Client: Closed"); 
             clearTimeout(pingTimeout);
         })
         
         return new Promise<WebSocket>((resolve) => {
             ws.once('open', () => {
-                // console.log("Client: Open")
                 resolve(ws)
             })
         })
@@ -83,111 +80,47 @@ export class TipcNodeClient {
     /////////////////////////////////////////////////////////////
     // Event listeners
     ////////////////////////////////////////////////////////////
-    addListener(namespace: string, key: Key, callback: Callback) {
-        return this.addListenerInternal(namespace, key, {multiUse: true, callback})
+    addListener(namespace: string, key: string, callback: Callback) {
+        return this.tipcListenerComponent.addListener(namespace, key, {multiUse: true, callback})
     }
 
-    addOnceListener(namespace: string, key: Key, callback: Callback) {
-        return this.addListenerInternal(namespace, key, {multiUse: false, callback})
+    addOnceListener(namespace: string, key: string, callback: Callback) {
+        return this.tipcListenerComponent.addListener(namespace, key, {multiUse: false, callback})
     }
 
-    removeListener(namespace: string, key: Key, callback: Callback) {
-        const fullKey = this.makeKey(namespace, key);
-        const listeners = this.sendListeners.get(fullKey) ?? [];
-        const filtered = listeners.filter(c => c.callback !== callback);
-        this.sendListeners.set(fullKey, filtered);
+    removeListener(namespace: string, key: string, callback: Callback) {
+        this.tipcListenerComponent.removeListener(namespace, key, callback)
     }
 
-    call(namespace: string, key: Key, ...args: any) {
-        const message: TipcMessageObject = {
-            namespace: namespace,
-            key: key.toString(),
-            method: "send",
-            data: args,
-        }
+    call(namespace: string, key: string, ...args: any) {
+        const message = makeTipcSendObject(namespace, key, ...args)
         setImmediate(() => {
             this.ws?.send(JSON.stringify(message))
-            this.callListeners(namespace, key, ...args)
+            this.tipcListenerComponent.callListeners(namespace, key, ...args)
         })
-    }
-
-    private addListenerInternal(namespace: string, key: Key, callback: WrappedCallback): TipcSubscription {
-        const fullKey = this.makeKey(namespace, key);
-        const listeners = this.sendListeners.get(fullKey) ?? [];
-        listeners.push(callback);
-        this.sendListeners.set(fullKey, listeners);
-        return {unsubscribe: () => {
-            const filtered = (this.sendListeners.get(fullKey) ?? []).filter(cb => cb !== callback)
-            if(filtered.length===0){
-                this.sendListeners.delete(fullKey)
-            } else {
-                this.sendListeners.set(fullKey, filtered)
-            }
-        }}
     }
     
     /////////////////////////////////////////////////////////////
     // Invokation listeners
     ////////////////////////////////////////////////////////////
-    invoke(namespace: string, key: Key, ...args: any[]): Promise<any> {
-        const messageId = randomUUID();
-        const message: TipcMessageObject = {
-            namespace: namespace,
-            key: key.toString(),
-            method: "invoke",
-            data: args,
-            messageId,
-        }
+    invoke(namespace: string, key: string, ...args: any[]): Promise<any> {
+        // Replies to an invokation comes on the same namespace with the messageId as key
+        // If the reply is an error, the error listener is "error-"+messageId
+        const message = makeTipcInvokeObject(namespace, key, ...args)
         const promise = new Promise<any>((resolve, reject) => {
-            let res: TipcSubscription, rej: TipcSubscription;
-            res = this.addOnceListener(namespace, messageId, (data: any[]) => {
+            let resSub: TipcSubscription, rejSub: TipcSubscription;
+            resSub = this.addOnceListener(namespace, message.messageId, (data: any[]) => {
                 resolve(data)
-                rej?.unsubscribe()
+                rejSub?.unsubscribe()
             })
-            rej = this.addOnceListener(namespace, "error-"+messageId, (data: any[]) => {
+            rejSub = this.addOnceListener(namespace, "error-"+message.messageId, (data: any[]) => {
                 reject(data)
-                res?.unsubscribe()
+                resSub?.unsubscribe()
             })
         })
         this.ws?.send(JSON.stringify(message), (err) => {
             if(err) console.error(err)
-            // else console.log("Message sent OK")
         });
         return promise;
-    }
-
-    /////////////////////////////////////////////////////////////
-    // Internals
-    ////////////////////////////////////////////////////////////
-    protected makeKey(namespace: string, key: Key) {
-        return `${namespace}::${key.toString()}`;
-    }
-
-    private validateMessageObject(obj: any): obj is TipcMessageObject {
-        const temp = obj as TipcMessageObject;
-        const primary = (!!temp.namespace) 
-                        && (!!temp.key) 
-                        && (temp.method==="send"
-                            ||temp.method==="invoke"
-                            ||temp.method==="error");
-        // TipcInvokeObject has an additional property, messageId
-        if(primary && temp.method==="invoke") {
-            return (!!temp.messageId)
-        } else {
-            return primary
-        }
-    }
-
-    private callListeners(namespace: string, key: Key, ...args: any) {
-        const fullKey = this.makeKey(namespace, key)
-        const listeners = this.sendListeners.get(fullKey) ?? [];
-        const filtered = listeners.filter(c => c.multiUse);
-        if(filtered.length===0) {
-            this.sendListeners.delete(fullKey)
-        }
-        else {
-            this.sendListeners.set(fullKey, filtered);
-        }
-        listeners.forEach(c => c.callback(...args));
     }
 }

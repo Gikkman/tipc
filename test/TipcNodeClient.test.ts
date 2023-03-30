@@ -10,7 +10,7 @@ const setupServerClient = async (): Promise<[TipcNodeServer, TipcNodeClient, Tip
     m_server = await TipcNodeServer.create({host:"localhost", port: 0});
     
     const address = m_server.getAddressInfo();
-    if(address == undefined) { throw "Address undefined" }
+    if(!address) { throw "Address undefined" }
     
     m_clientA = await TipcNodeClient.create(address);
     m_clientB = await TipcNodeClient.create(address);
@@ -221,7 +221,7 @@ describe("Test TipcNodeClient.invoke", () => {
         } catch (e) {
             expect(e).toBe("No handler defined for namespace ns and key does-not-exist")
         }
-        expect(client['sendListeners'].size).toBe(0)
+        expect(client['tipcListenerComponent']['sendListeners'].size).toBe(0)
     })
 
     it("will return error if server throws exception", async () => {
@@ -236,6 +236,6 @@ describe("Test TipcNodeClient.invoke", () => {
         } catch (e) {
             expect(e).toContain("A server-side exception occurred")
         }
-        expect(client['sendListeners'].size).toBe(0)
+        expect(client['tipcListenerComponent']['sendListeners'].size).toBe(0)
     })
 })
