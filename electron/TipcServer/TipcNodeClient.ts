@@ -1,16 +1,17 @@
 import { AddressInfo, WebSocket } from "ws";
 import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
-import { Callback, TipcSubscription } from "./Types";
+import { TipcNamespaceClient } from "./TipcNamespaceClient";
+import { Callback, TipcUntypedClient, TipcSubscription, TipcClient } from "./Types";
 
-export class TipcNodeClient {
+export class TipcNodeClient implements TipcUntypedClient {
     protected host: string;
     protected port: number;
     protected ws?: WebSocket;
 
     protected tipcListenerComponent = new TipcListenerComponent()
 
-    constructor(url: AddressInfo|{address:string, port:number}) {
+    private constructor(url: AddressInfo|{address:string, port:number}) {
         this.host = url.address;
         this.port = url.port;
     }
@@ -21,7 +22,11 @@ export class TipcNodeClient {
         return instance;
     }
 
-    public async startup() {
+    public forNamespace<T = "Please provide a mapping type">(namespace: string & (T extends string ? never : string)): TipcClient<T> {
+        return new TipcNamespaceClient<T>(this, namespace);
+    }
+
+    private async startup() {
         const url = `ws://${this.host}:${this.port}`
         this.ws = await this.initWs(url);
     }
@@ -61,9 +66,9 @@ export class TipcNodeClient {
             }
             if( validateMessageObject(obj) ) {
                 if(obj.method === "error") 
-                    this.tipcListenerComponent.callListeners(obj.namespace, "error-"+obj.key, ...obj.data);
+                    this.tipcListenerComponent.callListeners(obj.namespace, "error-"+obj.topic, ...obj.data);
                 else
-                    this.tipcListenerComponent.callListeners(obj.namespace, obj.key, ...obj.data);
+                    this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, ...obj.data);
             }
         })
         ws.on('close', () => { 
@@ -88,11 +93,7 @@ export class TipcNodeClient {
         return this.tipcListenerComponent.addListener(namespace, key, {multiUse: false, callback})
     }
 
-    removeListener(namespace: string, key: string, callback: Callback) {
-        this.tipcListenerComponent.removeListener(namespace, key, callback)
-    }
-
-    call(namespace: string, key: string, ...args: any) {
+    send(namespace: string, key: string, ...args: any) {
         const message = makeTipcSendObject(namespace, key, ...args)
         setImmediate(() => {
             this.ws?.send(JSON.stringify(message))

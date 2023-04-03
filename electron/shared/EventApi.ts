@@ -11,3 +11,7 @@ export interface B{
     'b': {data: 2, sender: string};
     'H': (data: [number, number, number]) => number;
 }
+
+export interface C{
+    'a': 'b'
+}

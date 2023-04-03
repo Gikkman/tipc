@@ -1,34 +1,34 @@
 import { randomUUID } from "crypto";
-import { TipcErrorObject, TipcInvokeObject, TipcMessageObject, TipcSendObject } from "./Types";
+import { Key, TipcErrorObject, TipcInvokeObject, TipcMessageObject, TipcSendObject } from "./Types";
 
-export function makeKey(namespace: string, key: string) {
-    return `${namespace}::${key.toString()}`;
+export function makeKey(namespace: string, topic: Key) {
+    return `${namespace}::${topic.toString()}`;
 }
 
-export function makeTipcSendObject(namespace: string, key: string, ...args: any[]): TipcSendObject {
+export function makeTipcSendObject(namespace: string, topic: Key, ...args: any[]): TipcSendObject {
     return {
         method: "send",
         namespace,
-        key,
+        topic: topic.toString(),
         data: args
     }
 }
 
-export function makeTipcInvokeObject(namespace: string, key: string, ...args: any[]): TipcInvokeObject {
+export function makeTipcInvokeObject(namespace: string, topic: Key, ...args: any[]): TipcInvokeObject {
     return {
         method: "invoke",
         namespace,
-        key,
+        topic: topic.toString(),
         data: args,
         messageId: randomUUID()
     }
 }
 
-export function makeTipcErrorObject(namespace: string, key: string, message: string): TipcErrorObject {
+export function makeTipcErrorObject(namespace: string, topic: Key, message: string): TipcErrorObject {
     return {
         method: "error",
         namespace,
-        key,
+        topic: topic.toString(),
         data: [message]
     }
 }
@@ -36,7 +36,7 @@ export function makeTipcErrorObject(namespace: string, key: string, message: str
 export function validateMessageObject(obj: any): obj is TipcMessageObject {
     const temp = obj as TipcMessageObject;
     const primary = (!!temp.namespace) 
-                    && (!!temp.key) 
+                    && (!!temp.topic) 
                     && (temp.method==="send"
                         ||temp.method==="invoke"
                         ||temp.method==="error");

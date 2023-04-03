@@ -1,9 +1,10 @@
 import { WebSocketServer, WebSocket, AddressInfo } from "ws";
-import { Callback, WrappedCallback, TipcMessageObject, Key, TipcSubscription, TipcInvokeObject } from "./Types";
+import { Callback, WrappedCallback, TipcMessageObject, Key, TipcSubscription, TipcInvokeObject, TipcUntypedServer, TipcServer } from "./Types";
 import { Server as HTTPServer } from "http";
 import { Server as HTTPSServer } from "https";
 import { makeKey, makeTipcErrorObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
+import { TipcNamespaceServer } from "./TipcNamespaceServer";
 
 /**
  * **Tipc Server Options**
@@ -22,7 +23,7 @@ import { TipcListenerComponent } from "./TipcListenerComponent";
 export type TipcServerOptions = {checkTimeouts?: boolean} & 
     ({noWsServer: true} | { host: string, port: number} | {server: HTTPServer | HTTPSServer})
 
-export class TipcNodeServer {
+export class TipcNodeServer implements TipcUntypedServer {
     private wss?: WebSocketServer;
     private options: TipcServerOptions
 
@@ -43,6 +44,10 @@ export class TipcNodeServer {
         const address = this.wss?.address();
         if(address) return address as AddressInfo
         return undefined
+    }
+
+    public forNamespace<T = "Please provide a mapping type">(namespace: string & (T extends string ? never : string)): TipcServer<T> {
+        return new TipcNamespaceServer<T>(this, namespace);
     }
 
     public async shutdown() {
@@ -149,7 +154,7 @@ export class TipcNodeServer {
             this.callHandler(ws, obj)
         }
         else if ( obj.method === "send" ) {
-            this.tipcListenerComponent.callListeners(obj.namespace, obj.key, ...obj.data)
+            this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, ...obj.data)
         }
     }
 
@@ -184,8 +189,8 @@ export class TipcNodeServer {
         return this.addHandlerInternal(namespace, key, {multiUse: false, callback})
     }
     
-    protected callHandler(caller:  WebSocket, obj: TipcInvokeObject) {
-        const fullKey = makeKey(obj.namespace, obj.key);
+    private callHandler(caller:  WebSocket, obj: TipcInvokeObject) {
+        const fullKey = makeKey(obj.namespace, obj.topic);
         const handler = this.invokeListeners.get(fullKey);
         if(handler && !handler.multiUse) this.invokeListeners.delete(fullKey);
         setImmediate(() => {
@@ -202,17 +207,17 @@ export class TipcNodeServer {
                 }
             }
             else {
-                const msg = `No handler defined for namespace ${obj.namespace} and key ${obj.key.toString()}`;
+                const msg = `No handler defined for namespace ${obj.namespace} and key ${obj.topic.toString()}`;
                 const reply = makeTipcErrorObject(obj.namespace, obj.messageId, msg)
                 caller.send(JSON.stringify(reply))
             }
         })
     }
 
-    private addHandlerInternal(namespace: string, key: Key, callback: WrappedCallback): TipcSubscription {
-        const fullKey = makeKey(namespace, key);
+    private addHandlerInternal(namespace: string, topic: Key, callback: WrappedCallback): TipcSubscription {
+        const fullKey = makeKey(namespace, topic);
         if( this.invokeListeners.has(fullKey) ) {
-            throw new Error(`Cannot register handler for key ${key.toString()} in namespace ${namespace}. A handler is already registered with these properties`);
+            throw new Error(`Cannot register handler for key ${topic.toString()} in namespace ${namespace}. A handler is already registered with these properties`);
         }
         this.invokeListeners.set(fullKey, callback)
         return {unsubscribe: () => {
