@@ -197,11 +197,11 @@ export class TipcNodeServer implements TipcUntypedServer {
         const fullKey = makeKey(obj.namespace, obj.topic);
         const handler = this.invokeListeners.get(fullKey);
         if(handler && !handler.multiUse) this.invokeListeners.delete(fullKey);
-        setImmediate(() => {
+        setImmediate(async () => {
             // Replies to an invocation is sent to the same namespace with the messageId as key
             if(handler) {
                 try {
-                    const result = handler.callback(...obj.data);
+                    const result = await handler.callback(...obj.data);
                     const reply = makeTipcSendObject(obj.namespace, obj.messageId, result)
                     caller.send(JSON.stringify(reply))
                 } catch (e) {

@@ -1,28 +1,27 @@
-import { AddressInfo, WebSocket } from "ws";
 import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
 import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
-import { Callback, TipcUntypedClient, TipcSubscription, TipcClient, TipcClientCore } from "./TipcTypes";
+import { Callback, TipcUntypedClient, TipcSubscription, TipcClient, TipcClientCore, TipcAddressInfo } from "./TipcTypes";
 
-export class TipcNodeClient implements TipcUntypedClient {
+export class TipcBrowserClient implements TipcUntypedClient {
     protected host: string;
     protected port: number;
     protected ws?: WebSocket;
 
     protected tipcListenerComponent = new TipcListenerComponent()
 
-    private constructor(url: AddressInfo|{address:string, port:number}) {
+    private constructor(url: TipcAddressInfo) {
         this.host = url.address;
         this.port = url.port;
     }
 
     public static create(url: {address:string, port:number}): TipcClientCore {
-        const instance = new TipcNodeClient(url);
+        const instance = new TipcBrowserClient(url);
         return instance;
     }
 
-    public getAddressInfo(): AddressInfo {
-        return {address: this.host, port: this.port, family: ''}
+    public getAddressInfo(): TipcAddressInfo {
+        return {address: this.host, port: this.port}
     }
 
     public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcClient<T> {
@@ -38,7 +37,7 @@ export class TipcNodeClient implements TipcUntypedClient {
     public async shutdown(): Promise<void> {
         return new Promise(res => {
             if(this.ws?.readyState === WebSocket.OPEN) {
-                this.ws.once('close', () => res(undefined));
+                this.ws.onclose = () => res(undefined);
                 this.ws.close(); 
             } else {
                 res(undefined)
@@ -49,18 +48,9 @@ export class TipcNodeClient implements TipcUntypedClient {
     private initWs(url: string) {
         let pingTimeout: NodeJS.Timeout;
         const ws = new WebSocket(url);
-        
-        function heartbeat() {
-            clearTimeout(pingTimeout);
-            pingTimeout = setTimeout(() => {
-                ws.terminate();
-            }, 45_000);
-        }
 
-        ws.on('open', heartbeat);
-        ws.on('ping', heartbeat);
-        ws.on("message", (data, isBinary) => {
-            const msg = (isBinary ? data : data.toString()) as string;
+        ws.onmessage = (ev) => {
+            const msg =ev.data
             let obj: any;
             try {
                 obj = JSON.parse(msg);
@@ -70,19 +60,20 @@ export class TipcNodeClient implements TipcUntypedClient {
             }
             if( validateMessageObject(obj) ) {
                 if(obj.method === "error") 
-                    this.tipcListenerComponent.callListeners(obj.namespace, "error-"+obj.topic, ...obj.data);
+                this.tipcListenerComponent.callListeners(obj.namespace, "error-"+obj.topic, ...obj.data);
                 else
-                    this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, ...obj.data);
+                this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, ...obj.data);
             }
-        })
-        ws.on('close', () => { 
+        }
+        ws.onclose = (e) => { 
+            console.error(e)
             clearTimeout(pingTimeout);
-        })
+        }
         
         return new Promise<WebSocket>((resolve) => {
-            ws.once('open', () => {
+            ws.onopen = () => {
                 resolve(ws)
-            })
+            }
         })
     }
 

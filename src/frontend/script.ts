@@ -1,39 +1,45 @@
-import { tipcRenderer } from '../bus/Bus';
 import { A, B } from '../shared/EventApi';
+import { TipcBrowserClient } from '../TipcServer/TipcBrowserClient';
+import { TipcClient } from '../TipcServer/TipcTypes';
 
 const listElem = document.getElementById('list') as HTMLUListElement;
 
 /************************************************************************
  *  Event listeners
  ************************************************************************/
-const bus = tipcRenderer<A>({debug: true});
-const otherBus = tipcRenderer<B>({debug: true, namespace: "alternative-namespace"});
-bus.on('a', (data) => {
-    listElem.append( createListElement(data) );
-});
-otherBus.on('b', (data) => {
-    listElem.append( createListElement(data) );
-});
-bus.on('c', (data) => {
-    listElem.append( createListElement(data) );
-});
-bus.once('d', () => {
-    listElem.append( createListElement({data: -1, sender: ''}) );
-});
+let bus: TipcClient<A>, otherBus: TipcClient<B>;
+const core = TipcBrowserClient.create({address: "localhost", port: 8088});
+core.connect()
+.then(c => {
+    bus = c.forContractAndNamespace<A>("default");
+    otherBus = c.forContractAndNamespace<B>("alternative");
+    bus.addListener('a', (data) => {
+        listElem.append( createListElement(data) );
+    });
+    otherBus.addListener('b', (data) => {
+        listElem.append( createListElement(data) );
+    });
+    bus.addListener('c', (data) => {
+        listElem.append( createListElement(data) );
+    });
+    bus.addListener('d', () => {
+        listElem.append( createListElement({data: -1, sender: ''}) );
+    });
+})
 /************************************************************************
  *  Explicit methods
  ************************************************************************/
 function sendA() {
-    bus.broadcast('a', {data: 1, sender: 'renderer'});
+    bus.send('a', {data: 1, sender: 'renderer'});
 }
 function sendB() {
-    otherBus.broadcast('b', {data: 2, sender: 'renderer'});
+    otherBus.send('b', {data: 2, sender: 'renderer'});
 }
 function sendC() {
-    bus.broadcast('c', {data: 3, sender: 'renderer'});
+    bus.send('c', {data: 3, sender: 'renderer'});
 }
 function sendD() {
-    bus.broadcast('d');
+    bus.send('d');
 }
 function invokeF() {
     bus.invoke('F', 1, 'renderer').then( (val) => {
