@@ -5,10 +5,11 @@ import { TipcNodeServer } from './TipcServer/TipcNodeServer';
 /************************************************************************
  *  Main behavior
  ************************************************************************/
-TipcNodeServer.create({host: "localhost", port: 8088})
+TipcNodeServer.create({address: "localhost", port: 8088})
+.connect()
 .then(server => {
-    const bus = server.forNamespace<A>("default")
-    const otherBus = server.forNamespace<B>("alternative");
+    const bus = server.forContractAndNamespace<A>("default")
+    const otherBus = server.forContractAndNamespace<B>("alternative");
     bus.addListener('a', (event) => {
         console.log(`Received ${event.data} from ${event.sender} on main`);
     });

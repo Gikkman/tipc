@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Key, TipcErrorObject, TipcInvokeObject, TipcMessageObject, TipcSendObject } from "./Types";
+import { Key, TipcErrorObject, TipcInvokeObject, TipcMessageObject, TipcSendObject } from "./TipcTypes";
 
 export function makeKey(namespace: string, topic: Key) {
     return `${namespace}::${topic.toString()}`;

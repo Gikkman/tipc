@@ -1,8 +1,8 @@
 import { AddressInfo, WebSocket } from "ws";
 import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
-import { TipcNamespaceClient } from "./TipcNamespaceClient";
-import { Callback, TipcUntypedClient, TipcSubscription, TipcClient } from "./Types";
+import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
+import { Callback, TipcUntypedClient, TipcSubscription, TipcClient, TipcClientCore } from "./TipcTypes";
 
 export class TipcNodeClient implements TipcUntypedClient {
     protected host: string;
@@ -16,22 +16,26 @@ export class TipcNodeClient implements TipcUntypedClient {
         this.port = url.port;
     }
 
-    public static async create(url: {address:string, port:number}) {
+    public static create(url: {address:string, port:number}): TipcClientCore {
         const instance = new TipcNodeClient(url);
-        await instance.startup();
         return instance;
     }
 
-    public forNamespace<T = "Please provide a mapping type">(namespace: string & (T extends string ? never : string)): TipcClient<T> {
-        return new TipcNamespaceClient<T>(this, namespace);
+    public getAddressInfo(): AddressInfo {
+        return {address: this.host, port: this.port, family: ''}
     }
 
-    private async startup() {
+    public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcClient<T> {
+        return new TipcNamespaceClientImpl<T>(this, namespace);
+    }
+
+    public async connect(): Promise<TipcClientCore> {
         const url = `ws://${this.host}:${this.port}`
         this.ws = await this.initWs(url);
+        return this;
     }
     
-    public async shutdown() {
+    public async shutdown(): Promise<void> {
         return new Promise(res => {
             if(this.ws?.readyState === WebSocket.OPEN) {
                 this.ws?.once('close', () => res(undefined));
@@ -102,10 +106,10 @@ export class TipcNodeClient implements TipcUntypedClient {
     }
     
     /////////////////////////////////////////////////////////////
-    // Invokation listeners
+    // Invocation listeners
     ////////////////////////////////////////////////////////////
     invoke(namespace: string, key: string, ...args: any[]): Promise<any> {
-        // Replies to an invokation comes on the same namespace with the messageId as key
+        // Replies to an invocation comes on the same namespace with the messageId as key
         // If the reply is an error, the error listener is "error-"+messageId
         const message = makeTipcInvokeObject(namespace, key, ...args)
         const promise = new Promise<any>((resolve, reject) => {

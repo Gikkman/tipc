@@ -1,49 +1,57 @@
 import { TipcNodeServer } from "../electron/TipcServer/TipcNodeServer"
 import { sleep } from "./Helper.test";
 
+type AnyInterface = Record<string, any>
+
 describe("Test TipcNodeServer.addListener()", () => {
     it("will call server-side event listener in same namespace", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
-        server.addListener("ns", "server-side-without-args", () => counter++)
+        server.addListener("server-side-without-args", () => counter++)
         
-        server.broadcast("ns", "server-side-without-args")
+        server.send("server-side-without-args")
         await sleep(5)
         expect(counter).toBe(1)
     })
     
     it("will not call server-side event listener in different namespace", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const namespaceA = core.forContractAndNamespace<AnyInterface>("nsA")
+        const namespaceB = core.forContractAndNamespace<AnyInterface>("nsB")
         let counter = 0;
-        server.addListener("nsA", "server-side-namespaces", () => counter++)
+        namespaceA.addListener("server-side-namespaces", () => counter++)
         
-        server.broadcast("nsB", "server-side-namespaces")
+        namespaceB.send("server-side-namespaces")
         await sleep(5)
         expect(counter).toBe(0)
     })
 
     it("will call server-side event listener in same namespace and forward arguments", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
-        server.addListener("ns", "server-side-with-args", (numA: number, numB: number) => counter+=(numA*numB))
+        server.addListener("server-side-with-args", (numA: number, numB: number) => counter+=(numA*numB))
         
-        server.broadcast("ns", "server-side-with-args", 5, 2)
+        server.send("server-side-with-args", 5, 2)
         await sleep(5)
         expect(counter).toBe(10)
         
-        server.broadcast("ns", "server-side-with-args", 3, 3)
+        server.send("server-side-with-args", 3, 3)
         await sleep(5)
         expect(counter).toBe(19)
     })
 
     it("will call several server-side event listeners in the same namespace that listen to the same key", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
+        const server2 = core.forContractAndNamespace<AnyInterface>("ns2")
         let counterA = 0, counterB = 0, counterC = 0;
-        server.addListener("ns", "server-side-multiple-listeners", () => counterA++)
-        server.addListener("ns", "server-side-multiple-listeners", () => counterB+=2)
-        server.addListener("ns2", "server-side-multiple-listeners", () => counterC=10)
+        server.addListener("server-side-multiple-listeners", () => counterA++)
+        server.addListener("server-side-multiple-listeners", () => counterB+=2)
+        server2.addListener("server-side-multiple-listeners", () => counterC=10)
 
-        server.broadcast("ns", "server-side-multiple-listeners")
+        server.send("server-side-multiple-listeners")
         await sleep(5)
         expect(counterA).toBe(1)
         expect(counterB).toBe(2)
@@ -53,31 +61,33 @@ describe("Test TipcNodeServer.addListener()", () => {
 
 describe("Test TipcNodeServer.addOnceListener()", () => {
     it("will only call a once-listener once", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
-        server.addOnceListener("ns", "once-listener", () => counter++)
+        server.addOnceListener("once-listener", () => counter++)
 
-        server.broadcast("ns", "once-listener")
+        server.send("once-listener")
         await sleep(5)
         expect(counter).toBe(1)
         
-        server.broadcast("ns", "once-listener")
+        server.send("once-listener")
         await sleep(5)
         expect(counter).toBe(1)
     })
 
     it("will only call a once-listener once, but keep regular listeners", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counterA = 0, counterB = 0;
-        server.addOnceListener("ns", "both-listener", () => counterA++)
-        server.addListener("ns", "both-listener", () => counterB++)
+        server.addOnceListener("both-listener", () => counterA++)
+        server.addListener("both-listener", () => counterB++)
 
-        server.broadcast("ns", "both-listener")
+        server.send("both-listener")
         await sleep(5)
         expect(counterA).toBe(1)
         expect(counterB).toBe(1)
         
-        server.broadcast("ns", "both-listener")
+        server.send("both-listener")
         await sleep(5)
         expect(counterA).toBe(1)
         expect(counterB).toBe(2)
@@ -86,45 +96,49 @@ describe("Test TipcNodeServer.addOnceListener()", () => {
 
 describe("Test TipcNodeServer's unsubscribing from listeners and once-listeners", () => {
     it("will unsubscribe a regular listener", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
-        const handle = server.addListener("ns", "remove-listener", () => counter++)
+        const handle = server.addListener("remove-listener", () => counter++)
 
-        server.broadcast("ns", "remove-listener")
+        server.send("remove-listener")
         await sleep(5)
         expect(counter).toBe(1)
         
         handle.unsubscribe()
-        server.broadcast("ns", "remove-listener")
+        server.send("remove-listener")
         await sleep(5)
         expect(counter).toBe(1)
     })
 
     it("will unsubscribe once-listener before it was called", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
-        const handle = server.addOnceListener("ns", "remove-once-listener", () => counter++)
+        const handle = server.addOnceListener("remove-once-listener", () => counter++)
         
         handle.unsubscribe()
-        server.broadcast("ns", "remove-once-listener")
+        server.send("remove-once-listener")
         await sleep(5)
         expect(counter).toBe(0)
     })
 
     it("will accept unsubscribing an already unsubscribed listener", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
-        const handle = server.addListener("ns", "remove-listener", () => counter++)
+        const handle = server.addListener("remove-listener", () => counter++)
         handle.unsubscribe()
         handle.unsubscribe()
     })
 
     it("will accept unsubscribe to once-listener after it was called", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
-        const handle = server.addOnceListener("ns", "remove-once-listener-post-call", () => counter++)
+        const handle = server.addOnceListener("remove-once-listener-post-call", () => counter++)
         
-        server.broadcast("ns", "remove-once-listener-post-call")
+        server.send("remove-once-listener-post-call")
         await sleep(5)
         expect(counter).toBe(1)
 
@@ -134,42 +148,48 @@ describe("Test TipcNodeServer's unsubscribing from listeners and once-listeners"
 
 describe("Test TipcNodeServer.addHandler", () => {
     it("will reject adding a handler to a namespace+key already added", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
-        server.addHandler("ns", "reject-handler", cb)
-        expect(() => server.addHandler("ns", "reject-handler", cb)).toThrow()
+        server.addHandler("reject-handler", cb)
+        expect(() => server.addHandler("reject-handler", cb)).toThrow()
     })
 
     it("will reject adding a once-handler to a namespace+key already added", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
-        server.addHandler("ns", "reject-handler", cb)
-        expect(() => server.addOnceHandler("ns", "reject-handler", cb)).toThrow()
+        server.addHandler("reject-handler", cb)
+        expect(() => server.addOnceHandler("reject-handler", cb)).toThrow()
     })
 
     it("will reject adding a handler to a namespace+key already added (once-handler)", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
-        server.addOnceHandler("ns", "reject-handler", cb)
-        expect(() => server.addHandler("ns", "reject-handler", cb)).toThrow()
+        server.addOnceHandler("reject-handler", cb)
+        expect(() => server.addHandler("reject-handler", cb)).toThrow()
     })
 
     it("will reject adding a once-handler to a namespace+key already added (once-handler)", async () => {
-        const server = await TipcNodeServer.create();
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
-        server.addOnceHandler("ns", "reject-handler", cb)
-        expect(() => server.addHandler("ns", "reject-handler", cb)).toThrow()
+        server.addOnceHandler("reject-handler", cb)
+        expect(() => server.addHandler("reject-handler", cb)).toThrow()
     })
 })
 
 describe("Test TipcNodeServer.getAddressInfo", () => {
     it("will return 'undefined' if not connected to a websocket", async () => {
-        const server = await TipcNodeServer.create();
+        const core = TipcNodeServer.create({address:"localhost", port:0})
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         expect(server.getAddressInfo()).toBeUndefined()
     })
 
     it("will return something if connected to a websocket", async () => {
-        const server = await TipcNodeServer.create({host:'localhost', port: 0});
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const server = core.forContractAndNamespace<AnyInterface>("ns")
         expect(server.getAddressInfo()).toBeTruthy()
     })
 })

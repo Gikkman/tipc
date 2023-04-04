@@ -1,11 +1,11 @@
-import { TipcUntypedClient, Args, ExtractFunctions, Ret, TipcClient, Typings } from "./Types";
+import { TipcUntypedClient, Args, ExtractFunctions, Ret, TipcClient, Typings } from "./TipcTypes";
 
-export class TipcNamespaceClient<T> implements TipcClient<T> {
-    private client: TipcUntypedClient;
+export class TipcNamespaceClientImpl<T> implements TipcClient<T> {
+    private core: TipcUntypedClient;
     private namespace: string;
 
     constructor(client: TipcUntypedClient, namespace: string) {
-        this.client = client;
+        this.core = client;
         this.namespace = namespace;
     }
 
@@ -13,19 +13,19 @@ export class TipcNamespaceClient<T> implements TipcClient<T> {
         K extends keyof T,
         V extends Typings<T,K>
     >(topic: K, callback: (...params: V) => any) {
-        return this.client.addListener(this.namespace, topic, callback)
+        return this.core.addListener(this.namespace, topic, callback)
     }
     addOnceListener<
         K extends keyof T,
         V extends Typings<T,K>
     >(topic: K, callback: (...params: V) => any) {
-        return this.client.addOnceListener(this.namespace, topic, callback)
+        return this.core.addOnceListener(this.namespace, topic, callback)
     }
     send<
         K extends keyof T,
         V extends Typings<T,K>
     >(topic: K, ...args: V): void {
-        this.client.send(this.namespace, topic, ...args)
+        this.core.send(this.namespace, topic, ...args)
     }
 
     invoke<
@@ -33,6 +33,6 @@ export class TipcNamespaceClient<T> implements TipcClient<T> {
         R extends Ret<T,K>,
         P extends Args<T,K>,
     >(topic: K, ...args: P): Promise<R> {
-        return this.client.invoke(this.namespace, topic, ...args)
+        return this.core.invoke(this.namespace, topic, ...args)
     }
 }

@@ -1,6 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Type for extracting properties from a dictionary which's value matches
 // a certain type (in this case, functions / not functions)
+
+import { AddressInfo } from "net";
+
 /////////////////////////////////////////////////////////////////////////////
 type KeysMatchingType<T, Match, Keys extends keyof T = Extract<keyof T, string>> = ({[K in Keys]: T[K] extends Match ? K : never})[Keys];
 type KeysNotMatchingType<T, Match, Keys extends keyof T = Extract<keyof T, string>> = ({[K in Keys]: T[K] extends Match ? never : K})[Keys];
@@ -45,13 +48,26 @@ export interface TipcServer<T> extends TipcCore<T> {
         K extends keyof ExtractFunctions<T>,
         R extends Ret<T,K>
     > (channel: K, handler: (...args: Args<T,K>) => R | Promise<R>): TipcSubscription;
+    getAddressInfo(): AddressInfo|undefined
 }
 
 export interface TipcClient<T> extends TipcCore<T> {
     invoke<
-        K extends keyof ExtractFunctions<T>,
-        R extends Ret<T,K>
+    K extends keyof ExtractFunctions<T>,
+    R extends Ret<T,K>
     >(channel: K, ...args: Args<T,K>): Promise<R>;
+}
+
+export interface TipcServerCore {
+    getAddressInfo(): AddressInfo|undefined
+    shutdown(): Promise<unknown>,
+    connect(): Promise<TipcServerCore>,
+    forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcServer<T>
+}
+export interface TipcClientCore {
+    shutdown(): Promise<unknown>,
+    connect(): Promise<TipcClientCore>,
+    forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcClient<T>
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -93,6 +109,8 @@ export type TipcUntypedServer = {
     
     addHandler(namespace: string, topic: Key, callback: Callback): TipcSubscription,
     addOnceHandler(namespace: string, topic: Key, callback: Callback): TipcSubscription,
+
+    getAddressInfo(): AddressInfo|undefined
 }
 export type TipcUntypedClient = {
     send(namespace: string, topic: Key, ...args: any[]): void,

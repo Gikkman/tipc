@@ -1,5 +1,5 @@
 import { makeKey } from "./TipcCommon";
-import { Callback, Key, TipcSubscription, WrappedCallback } from "./Types";
+import { Callback, Key, TipcSubscription, WrappedCallback } from "./TipcTypes";
 
 export class TipcListenerComponent {
     private sendListeners: Map<string, WrappedCallback[]> = new Map();

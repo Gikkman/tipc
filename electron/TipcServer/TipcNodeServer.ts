@@ -1,15 +1,15 @@
 import { WebSocketServer, WebSocket, AddressInfo } from "ws";
-import { Callback, WrappedCallback, TipcMessageObject, Key, TipcSubscription, TipcInvokeObject, TipcUntypedServer, TipcServer } from "./Types";
+import { Callback, WrappedCallback, TipcMessageObject, Key, TipcSubscription, TipcInvokeObject, TipcUntypedServer, TipcServer, TipcServerCore } from "./TipcTypes";
 import { Server as HTTPServer } from "http";
 import { Server as HTTPSServer } from "https";
 import { makeKey, makeTipcErrorObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
-import { TipcNamespaceServer } from "./TipcNamespaceServer";
+import { TipcNamespaceServerImpl } from "./TipcNamespaceServerImpl";
 
 /**
  * **Tipc Server Options**
  * 
- * When specifying {noWsServer: true}, no Sebsocket server will be created, and you can use the Tipc instance
+ * When specifying {noWsServer: true}, no Websocket server will be created, and you can use the Tipc instance
  * as a pure pub/sub system.
  * 
  * When supplying a host and port, a new Websocket server instance will be create. This instance will
@@ -21,7 +21,7 @@ import { TipcNamespaceServer } from "./TipcNamespaceServer";
  * function.
  */
 export type TipcServerOptions = {checkTimeouts?: boolean} & 
-    ({noWsServer: true} | { host: string, port: number} | {server: HTTPServer | HTTPSServer})
+    ({noWsServer: true} | { address: string, port: number} | {server: HTTPServer | HTTPSServer})
 
 export class TipcNodeServer implements TipcUntypedServer {
     private wss?: WebSocketServer;
@@ -34,9 +34,8 @@ export class TipcNodeServer implements TipcUntypedServer {
         this.options = { checkTimeouts: false, ...(options ?? {noWsServer: true}) }
     }
 
-    public static async create(options?: TipcServerOptions) {
+    public static create(options?: TipcServerOptions): TipcServerCore {
         const server = new TipcNodeServer(options);
-        await server.initWss();
         return server;
     }
 
@@ -46,11 +45,16 @@ export class TipcNodeServer implements TipcUntypedServer {
         return undefined
     }
 
-    public forNamespace<T = "Please provide a mapping type">(namespace: string & (T extends string ? never : string)): TipcServer<T> {
-        return new TipcNamespaceServer<T>(this, namespace);
+    public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcServer<T> {
+        return new TipcNamespaceServerImpl<T>(this, namespace);
     }
 
-    public async shutdown() {
+    public async connect(): Promise<TipcServerCore> {
+        await this.initWss();
+        return this;
+    }
+
+    public async shutdown(): Promise<void> {
         return new Promise((resolve, reject) => {
             if(!this.wss) {
                 resolve(undefined);
@@ -179,7 +183,7 @@ export class TipcNodeServer implements TipcUntypedServer {
     }
     
     /////////////////////////////////////////////////////////////
-    // Invokation listeners
+    // Invocation listeners
     ////////////////////////////////////////////////////////////
     addHandler(namespace: string, key: Key, callback: Callback) {
         return this.addHandlerInternal(namespace, key, {multiUse: true, callback})
@@ -194,7 +198,7 @@ export class TipcNodeServer implements TipcUntypedServer {
         const handler = this.invokeListeners.get(fullKey);
         if(handler && !handler.multiUse) this.invokeListeners.delete(fullKey);
         setImmediate(() => {
-            // Replies to an invokation is sent to the same namespace with the messageId as key
+            // Replies to an invocation is sent to the same namespace with the messageId as key
             if(handler) {
                 try {
                     const result = handler.callback(...obj.data);
