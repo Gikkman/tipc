@@ -1,4 +1,4 @@
-import { TipcNodeServer } from "../electron/TipcServer/TipcNodeServer"
+import { TipcNodeServer } from "../src/TipcServer/TipcNodeServer"
 import { sleep } from "./Helper.test";
 
 type AnyInterface = Record<string, any>

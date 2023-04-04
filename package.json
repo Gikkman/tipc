@@ -7,12 +7,12 @@
     "name": "Gikkman",
     "url": "http://www.github.com/gikkman"
   },
-  "main": "_compile/Main.js",
+  "main": "dist/Main.js",
   "scripts": {
     "prestart": "npm run compile",
     "start": "electron .",
     "compile": "tsc",
-    "postcompile": "copyfiles -u 1 electron/**/*.html electron/**/*.css _compile/",
+    "postcompile": "copyfiles -u 1 electron/**/*.html electron/**/*.css dist/",
     "test": "jasmine --config=jasmine.json"
   },
   "keywords": [],

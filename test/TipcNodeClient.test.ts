@@ -1,7 +1,7 @@
-import { TipcNodeServer } from "../electron/TipcServer/TipcNodeServer"
-import { TipcNodeClient } from "../electron/TipcServer/TipcNodeClient"
+import { TipcNodeServer } from "../src/TipcServer/TipcNodeServer"
+import { TipcNodeClient } from "../src/TipcServer/TipcNodeClient"
 import { sleep } from "./Helper.test";
-import { Callback, TipcClient, TipcClientCore, TipcServer, TipcServerCore } from "../electron/TipcServer/TipcTypes";
+import { Callback, TipcClient, TipcClientCore, TipcServer, TipcServerCore } from "../src/TipcServer/TipcTypes";
 
 type AnyInterface = Record<string,any>
 type CallbackInterface = Record<string,Callback>
