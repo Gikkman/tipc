@@ -1,27 +1,8 @@
 import { WebSocketServer, WebSocket, AddressInfo } from "ws";
-import { Callback, WrappedCallback, TipcMessageObject, Key, TipcSubscription, TipcInvokeObject, TipcUntypedServer, TipcServer, TipcServerCore } from "./TipcTypes";
-import { Server as HTTPServer } from "http";
-import { Server as HTTPSServer } from "https";
+import { Callback, WrappedCallback, TipcMessageObject, Topic, TipcSubscription, TipcInvokeObject, TipcUntypedServer, TipcNamespaceServer, TipcServer, TipcServerOptions, TipcFactory } from "./TipcTypes";
 import { makeKey, makeTipcErrorObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
 import { TipcNamespaceServerImpl } from "./TipcNamespaceServerImpl";
-
-/**
- * **Tipc Server Options**
- * 
- * When specifying {noWsServer: true}, no Websocket server will be created, and you can use the Tipc instance
- * as a pure pub/sub system.
- * 
- * When supplying a host and port, a new Websocket server instance will be create. This instance will
- * be managed by Tipc and properly shutdown once the `shutdown()` method is called. To use a random port, supply
- * port number `0`.
- * 
- * When supplying a HTTPServer, Tipc will create a Websocket server from that HTTPServer. The Websocket server
- * will be managed by Tipc, but if the HTTPServer is closed externally, the Websocket server will cease to
- * function.
- */
-export type TipcServerOptions = {checkTimeouts?: boolean} & 
-    ({noWsServer: true} | { address: string, port: number} | {server: HTTPServer | HTTPSServer})
 
 export class TipcNodeServer implements TipcUntypedServer {
     private wss?: WebSocketServer;
@@ -34,7 +15,7 @@ export class TipcNodeServer implements TipcUntypedServer {
         this.options = { checkTimeouts: false, ...(options ?? {noWsServer: true}) }
     }
 
-    public static create(options?: TipcServerOptions): TipcServerCore {
+    public static create(options?: TipcServerOptions): TipcFactory<TipcServer> {
         const server = new TipcNodeServer(options);
         return server;
     }
@@ -45,11 +26,11 @@ export class TipcNodeServer implements TipcUntypedServer {
         return undefined
     }
 
-    public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcServer<T> {
+    public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcNamespaceServer<T> {
         return new TipcNamespaceServerImpl<T>(this, namespace);
     }
 
-    public async connect(): Promise<TipcServerCore> {
+    public async connect(): Promise<TipcServer> {
         await this.initWss();
         return this;
     }
@@ -165,32 +146,32 @@ export class TipcNodeServer implements TipcUntypedServer {
     /////////////////////////////////////////////////////////////
     // Event listeners
     ////////////////////////////////////////////////////////////
-    addListener(namespace: string, key: Key, callback: Callback) {
-        return this.tipcListenerComponent.addListener(namespace, key, {multiUse: true, callback})
+    addListener(namespace: string, topic: Topic, callback: Callback) {
+        return this.tipcListenerComponent.addListener(namespace, topic, {multiUse: true, callback})
     }
 
-    addOnceListener(namespace: string, key: Key, callback: Callback) {
-        return this.tipcListenerComponent.addListener(namespace, key, {multiUse: false, callback})
+    addOnceListener(namespace: string, topic: Topic, callback: Callback) {
+        return this.tipcListenerComponent.addListener(namespace, topic, {multiUse: false, callback})
     }
 
-    broadcast(namespace: string, key: string, ...args: any[]) {
-        const message = makeTipcSendObject(namespace, key, ...args)
+    broadcast(namespace: string, topic: string, ...args: any[]) {
+        const message = makeTipcSendObject(namespace, topic, ...args)
         const str = JSON.stringify(message)
         this.wss?.clients.forEach(ws => {
             ws.send(str)
         })
-        this.tipcListenerComponent.callListeners(namespace, key, ...args)
+        this.tipcListenerComponent.callListeners(namespace, topic, ...args)
     }
     
     /////////////////////////////////////////////////////////////
     // Invocation listeners
     ////////////////////////////////////////////////////////////
-    addHandler(namespace: string, key: Key, callback: Callback) {
-        return this.addHandlerInternal(namespace, key, {multiUse: true, callback})
+    addHandler(namespace: string, topic: Topic, callback: Callback) {
+        return this.addHandlerInternal(namespace, topic, {multiUse: true, callback})
     }
     
-    addOnceHandler(namespace: string, key: Key, callback: Callback) {
-        return this.addHandlerInternal(namespace, key, {multiUse: false, callback})
+    addOnceHandler(namespace: string, topic: Topic, callback: Callback) {
+        return this.addHandlerInternal(namespace, topic, {multiUse: false, callback})
     }
     
     private callHandler(caller:  WebSocket, obj: TipcInvokeObject) {
@@ -218,7 +199,7 @@ export class TipcNodeServer implements TipcUntypedServer {
         })
     }
 
-    private addHandlerInternal(namespace: string, topic: Key, callback: WrappedCallback): TipcSubscription {
+    private addHandlerInternal(namespace: string, topic: Topic, callback: WrappedCallback): TipcSubscription {
         const fullKey = makeKey(namespace, topic);
         if( this.invokeListeners.has(fullKey) ) {
             throw new Error(`Cannot register handler for key ${topic.toString()} in namespace ${namespace}. A handler is already registered with these properties`);

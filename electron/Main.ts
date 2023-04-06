@@ -1,11 +1,11 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'path';
 import { A, B } from './shared/EventApi';
-import { TipcNodeServer } from './TipcServer/TipcNodeServer';
+import { TipcWsServer } from '../src/TipcWsServer';
 /************************************************************************
  *  Main behavior
  ************************************************************************/
-TipcNodeServer.create({address: "localhost", port: 8088})
+TipcWsServer.create({address: "localhost", port: 8088})
 .connect()
 .then(server => {
     const bus = server.forContractAndNamespace<A>("default")

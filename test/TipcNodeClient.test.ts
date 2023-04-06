@@ -1,21 +1,21 @@
-import { TipcNodeServer } from "../src/TipcServer/TipcNodeServer"
-import { TipcNodeClient } from "../src/TipcServer/TipcNodeClient"
+import { TipcNodeServer } from "../src/TipcNodeServer"
+import { TipcNodeClient } from "../src/TipcNodeClient"
 import { sleep } from "./Helper.test";
-import { Callback, TipcClient, TipcClientCore, TipcServer, TipcServerCore } from "../src/TipcServer/TipcTypes";
+import { Callback, TipcClient, TipcNamespaceClient, TipcServer, TipcNamespaceServer } from "../src/TipcTypes";
 
 type AnyInterface = Record<string,any>
 type CallbackInterface = Record<string,Callback>
 
-let m_server_core: TipcServerCore|undefined;
-let m_client_core: TipcClientCore|undefined;
-let m_server: TipcServer<unknown>|undefined;
-let m_clientA: TipcClient<unknown>|undefined; 
-let m_clientB: TipcClient<unknown>|undefined;
+let m_server_core: TipcServer|undefined;
+let m_client_core: TipcClient|undefined;
+let m_server: TipcNamespaceServer<unknown>|undefined;
+let m_clientA: TipcNamespaceClient<unknown>|undefined; 
+let m_clientB: TipcNamespaceClient<unknown>|undefined;
 
 const setupServerClient = async <T>(namespaceServer= "default", 
                                  namespaceClientA = "default", 
                                  namespaceClientB = "default"
-    ): Promise<[TipcServer<T>, TipcClient<T>, TipcClient<T>]> => {
+    ): Promise<[TipcNamespaceServer<T>, TipcNamespaceClient<T>, TipcNamespaceClient<T>]> => {
     m_server_core = await TipcNodeServer.create({address:"localhost", port: 0}).connect()
     m_server = m_server_core.forContractAndNamespace<T | AnyInterface>(namespaceServer)
 

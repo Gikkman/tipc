@@ -1,6 +1,6 @@
-import { TipcUntypedClient, Args, ExtractFunctions, Ret, TipcClient, Typings } from "./TipcTypes";
+import { TipcUntypedClient, Args, ExtractFunctions, Ret, TipcNamespaceClient, Typings } from "./TipcTypes";
 
-export class TipcNamespaceClientImpl<T> implements TipcClient<T> {
+export class TipcNamespaceClientImpl<T> implements TipcNamespaceClient<T> {
     private core: TipcUntypedClient;
     private namespace: string;
 

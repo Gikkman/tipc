@@ -1,11 +1,11 @@
 import { randomUUID } from "crypto";
-import { Key, TipcErrorObject, TipcInvokeObject, TipcMessageObject, TipcSendObject } from "./TipcTypes";
+import { Topic, TipcErrorObject, TipcInvokeObject, TipcMessageObject, TipcSendObject } from "./TipcTypes";
 
-export function makeKey(namespace: string, topic: Key) {
+export function makeKey(namespace: string, topic: Topic) {
     return `${namespace}::${topic.toString()}`;
 }
 
-export function makeTipcSendObject(namespace: string, topic: Key, ...args: any[]): TipcSendObject {
+export function makeTipcSendObject(namespace: string, topic: Topic, ...args: any[]): TipcSendObject {
     return {
         method: "send",
         namespace,
@@ -14,7 +14,7 @@ export function makeTipcSendObject(namespace: string, topic: Key, ...args: any[]
     }
 }
 
-export function makeTipcInvokeObject(namespace: string, topic: Key, ...args: any[]): TipcInvokeObject {
+export function makeTipcInvokeObject(namespace: string, topic: Topic, ...args: any[]): TipcInvokeObject {
     return {
         method: "invoke",
         namespace,
@@ -24,7 +24,7 @@ export function makeTipcInvokeObject(namespace: string, topic: Key, ...args: any
     }
 }
 
-export function makeTipcErrorObject(namespace: string, topic: Key, message: string): TipcErrorObject {
+export function makeTipcErrorObject(namespace: string, topic: Topic, message: string): TipcErrorObject {
     return {
         method: "error",
         namespace,

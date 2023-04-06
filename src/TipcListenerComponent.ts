@@ -1,10 +1,10 @@
 import { makeKey } from "./TipcCommon";
-import { Callback, Key, TipcSubscription, WrappedCallback } from "./TipcTypes";
+import { Callback, Topic, TipcSubscription, WrappedCallback } from "./TipcTypes";
 
 export class TipcListenerComponent {
     private sendListeners: Map<string, WrappedCallback[]> = new Map();
 
-    removeListener(namespace: string, topic: Key, callback: Callback) {
+    removeListener(namespace: string, topic: Topic, callback: Callback) {
         const fullKey = makeKey(namespace, topic);
         const listeners = this.sendListeners.get(fullKey) ?? [];
         const filtered = listeners.filter(c => c.callback !== callback);
@@ -16,7 +16,7 @@ export class TipcListenerComponent {
         }
     }
 
-    addListener(namespace: string, topic: Key, callback: WrappedCallback): TipcSubscription {
+    addListener(namespace: string, topic: Topic, callback: WrappedCallback): TipcSubscription {
         const fullKey = makeKey(namespace, topic);
         const listeners = this.sendListeners.get(fullKey) ?? [];
         listeners.push(callback);
@@ -31,7 +31,7 @@ export class TipcListenerComponent {
         }}
     }
 
-    callListeners(namespace: string, topic: Key, ...args: any[]) {
+    callListeners(namespace: string, topic: Topic, ...args: any[]) {
         const fullKey = makeKey(namespace, topic)
         const listeners = this.sendListeners.get(fullKey) ?? [];
         const filtered = listeners.filter(c => c.multiUse);

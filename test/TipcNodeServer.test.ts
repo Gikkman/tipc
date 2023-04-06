@@ -1,4 +1,4 @@
-import { TipcNodeServer } from "../src/TipcServer/TipcNodeServer"
+import { TipcNodeServer } from "../src/TipcNodeServer"
 import { sleep } from "./Helper.test";
 
 type AnyInterface = Record<string, any>
@@ -182,7 +182,8 @@ describe("Test TipcNodeServer.addHandler", () => {
 
 describe("Test TipcNodeServer.getAddressInfo", () => {
     it("will return 'undefined' if not connected to a websocket", async () => {
-        const core = TipcNodeServer.create({address:"localhost", port:0})
+        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        await core.shutdown()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         expect(server.getAddressInfo()).toBeUndefined()
     })

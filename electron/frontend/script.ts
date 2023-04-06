@@ -1,6 +1,6 @@
 import { A, B } from '../shared/EventApi';
-import { TipcBrowserClient } from '../TipcServer/TipcBrowserClient';
-import { TipcClient } from '../TipcServer/TipcTypes';
+import { TipcBrowserClient } from '../../src/TipcBrowserClient';
+import { TipcClient } from '../../src/TipcTypes';
 
 const listElem = document.getElementById('list') as HTMLUListElement;
 
