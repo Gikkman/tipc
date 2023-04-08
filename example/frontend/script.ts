@@ -28,35 +28,37 @@ core.connect()
 })
 /************************************************************************
  *  Explicit methods
+ * 
+ *  Exported to avoid getting treeshake'd
  ************************************************************************/
-function sendA() {
+export function sendA() {
     bus.send('a', {data: 1, sender: 'renderer'});
 }
-function sendB() {
+export function sendB() {
     otherBus.send('b', {data: 2, sender: 'renderer'});
 }
-function sendC() {
+export function sendC() {
     bus.send('c', {data: 3, sender: 'renderer'});
 }
-function sendD() {
+export function sendD() {
     bus.send('d');
 }
-function invokeF() {
+export function invokeF() {
     bus.invoke('F', 1, 'renderer').then( (val) => {
         listElem.append( createListElement({data: val, sender: 'renderer'}) );
     });
 }
-function invokeG() {
+export function invokeG() {
     bus.invoke('G', 2, 'renderer').then( (val) => {
         listElem.append( createListElement({data: val, sender: 'renderer'}) );
     });
 }
-function invokeH() {
+export function invokeH() {
     otherBus.invoke('H', [4,3,2], ).then( (val) => {
         listElem.append( createListElement({data: val, sender: 'renderer'}) );
     });
 }
-function invokeI() {
+export function invokeI() {
     bus.invoke('I').then( (val) => {
         listElem.append( createListElement({data: -1, sender: val}) );
     });

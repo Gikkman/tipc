@@ -84,6 +84,7 @@ export class TipcNodeServer implements TipcUntypedServer {
         const clientAlive: Map<WebSocket, boolean> = new Map();
         const wss = new WebSocketServer(this.options);
         wss.on("connection", ws => {
+            console.log("Server: Client connecting")
             clientAlive.set(ws, true);
             ws.on("pong", () => clientAlive.set(ws, true))
             ws.on("message", (data, isBinary) => {
@@ -100,7 +101,7 @@ export class TipcNodeServer implements TipcUntypedServer {
                 }
             })
             ws.on("close", () => {
-                // console.log("Server: Client closed")
+                console.log("Server: Client closed")
             })
             ws.onerror = (err) => {
                 console.error("Server: Client error ["+err+"]")
@@ -122,12 +123,20 @@ export class TipcNodeServer implements TipcUntypedServer {
             })
         }, 30_000)
 
-        wss.on("close", () => {
+        wss.on("close", (e: string) => {
+            console.log("Closing server")
+            console.log(e)
             clearInterval(interval);
+        })
+        
+        wss.on('error', e => {
+            console.error("Server error")
+            console.error(e)
         })
 
         return new Promise<void>((resolve) => {
             wss.on("listening", () => {
+                console.log("WSS open")
                 this.wss = wss;
                 resolve();
             })
@@ -178,7 +187,7 @@ export class TipcNodeServer implements TipcUntypedServer {
         const fullKey = makeKey(obj.namespace, obj.topic);
         const handler = this.invokeListeners.get(fullKey);
         if(handler && !handler.multiUse) this.invokeListeners.delete(fullKey);
-        setImmediate(async () => {
+        setTimeout(async () => {
             // Replies to an invocation is sent to the same namespace with the messageId as key
             if(handler) {
                 try {

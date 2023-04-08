@@ -7,34 +7,50 @@
     "name": "Gikkman",
     "url": "http://www.github.com/gikkman"
   },
-  "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "umd:main": "dist/index.umd.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "prestart": "tsc -p tsconfig-electron.json && copyfiles -u 1 electron/**/*.html electron/**/*.css _dist_electron/electron/",
-    "start": "electron _dist_electron/electron/Main.js",
-    "test": "jasmine --config=jasmine.json",
-    "precompile": "rm -rf dist _dist_electron",
-    "compile": "tsc -p tsconfig.json"
+  "main": "./dist/cjs/index.node.js",
+  "module": "./dist/mjs/index.node.js",
+  "browser": "./dist/umd/index.browser.js",
+  "exports": {
+    "import": "./dist/mjs/index.node.js",
+    "require": "./dist/cjs/index.node.js",
+    "browser": "./dist/umd/index.browser.js"
   },
+  "scripts": {
+    "test": "jasmine --config=jasmine.json",
+    "example": "rm -rf example-static && tsc -p config/example.tsconfig.json && rollup -c config/example.rollup.config.mjs && copyfiles -u 2 example/**/*.html example/**/*.css example-static/ &&  ts-node example/Main.ts",
+    "compile": "rm -rf dist && npm run compile:cjs && npm run compile:mjs && npm run compile:umd && ./fixup.sh",
+    "compile:cjs": "tsc -p config/tsconfig.cjs.json",
+    "compile:mjs": "tsc -p config/tsconfig.mjs.json",
+    "compile:umd": "tsc -p config/tsconfig.browser.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
   "keywords": [],
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@types/express": "^4.17.17",
     "@types/jasmine": "^4.0.3",
     "@types/node": "^18.0.6",
     "@types/ws": "^8.5.3",
     "copyfiles": "^2.4.1",
     "electron": "^19.0.8",
+    "express": "^4.18.2",
     "jasmine": "^4.2.1",
     "jasmine-spec-reporter": "^7.0.0",
+    "rollup": "^3.20.2",
     "ts-node": "^10.9.1",
     "typescript": "^4.7.4"
   },
   "peerDependencies": {
     "typescript": ">= 4.7.x",
     "ws": ">=8.0.0"
-	},
+  },
   "optionalDependencies": {
     "bufferutil": "^4.0.6",
     "utf-8-validate": "^5.0.9"

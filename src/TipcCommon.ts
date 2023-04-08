@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { Topic, TipcErrorObject, TipcInvokeObject, TipcMessageObject, TipcSendObject } from "./TipcTypes";
 
 export function makeKey(namespace: string, topic: Topic) {
@@ -14,13 +13,13 @@ export function makeTipcSendObject(namespace: string, topic: Topic, ...args: any
     }
 }
 
-export function makeTipcInvokeObject(namespace: string, topic: Topic, ...args: any[]): TipcInvokeObject {
+export function makeTipcInvokeObject(namespace: string, topic: Topic, uuid: string, ...args: any[]): TipcInvokeObject {
     return {
         method: "invoke",
         namespace,
         topic: topic.toString(),
         data: args,
-        messageId: randomUUID()
+        messageId: uuid
     }
 }
 

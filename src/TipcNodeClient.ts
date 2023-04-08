@@ -3,6 +3,7 @@ import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from 
 import { TipcListenerComponent } from "./TipcListenerComponent";
 import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
 import { Callback, TipcUntypedClient, TipcSubscription, TipcNamespaceClient, TipcClient, TipcFactory, TipcAddressInfo } from "./TipcTypes";
+import { randomUUID } from "crypto";
 
 export class TipcNodeClient implements TipcUntypedClient {
     protected host: string;
@@ -99,7 +100,7 @@ export class TipcNodeClient implements TipcUntypedClient {
 
     send(namespace: string, topic: string, ...args: any) {
         const message = makeTipcSendObject(namespace, topic, ...args)
-        setImmediate(() => {
+        setTimeout(() => {
             this.ws?.send(JSON.stringify(message))
             this.tipcListenerComponent.callListeners(namespace, topic, ...args)
         })
@@ -111,7 +112,7 @@ export class TipcNodeClient implements TipcUntypedClient {
     invoke(namespace: string, topic: string, ...args: any[]): Promise<any> {
         // Replies to an invocation comes on the same namespace with the messageId as topic
         // If the reply is an error, the error listener is "error-"+messageId
-        const message = makeTipcInvokeObject(namespace, topic, ...args)
+        const message = makeTipcInvokeObject(namespace, topic, randomUUID(), ...args)
         const promise = new Promise<any>((resolve, reject) => {
             let resSub: TipcSubscription, rejSub: TipcSubscription;
             resSub = this.addOnceListener(namespace, message.messageId, (data: any[]) => {

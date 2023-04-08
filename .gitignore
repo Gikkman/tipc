@@ -63,4 +63,4 @@ typings/
 # my own
 .DS_Store
 dist/
-_dist_electron/
+example-static/

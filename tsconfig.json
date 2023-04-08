@@ -1,12 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Node 16",
   "compilerOptions": {
       "strict": true,
       
       "module": "commonjs",
       "target": "ES2020",
-      "lib": ["es2020", "dom"],
       "moduleResolution": "node",
       "esModuleInterop": true,
       "skipLibCheck": true,
@@ -14,10 +12,9 @@
       "forceConsistentCasingInFileNames": true,
 
       "declaration": true,
+      "declarationMap": true,
       "sourceMap": true,
       "inlineSources": true,
-
-      "outDir": "dist",
   },
   "include": [
       "src/**/*",

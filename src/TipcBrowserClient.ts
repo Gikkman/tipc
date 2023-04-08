@@ -46,10 +46,11 @@ export class TipcBrowserClient implements TipcUntypedClient {
     }
 
     private initWs(url: string) {
-        let pingTimeout: NodeJS.Timeout;
         const ws = new WebSocket(url);
-
-        ws.onmessage = (ev) => {
+        ws.addEventListener('error', (ev) => {
+            console.error(ev)
+        });
+        ws.addEventListener('message', (ev) => {
             const msg =ev.data
             let obj: any;
             try {
@@ -64,16 +65,15 @@ export class TipcBrowserClient implements TipcUntypedClient {
                 else
                     this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, ...obj.data);
             }
-        }
-        ws.onclose = (e) => { 
-            console.error(e)
-            clearTimeout(pingTimeout);
-        }
+        });
+        ws.addEventListener('close', (e) => { 
+            console.error(e);
+        })
         
         return new Promise<WebSocket>((resolve) => {
-            ws.onopen = () => {
+            ws.addEventListener('open', () => {
                 resolve(ws)
-            }
+            });
         })
     }
 
@@ -90,7 +90,7 @@ export class TipcBrowserClient implements TipcUntypedClient {
 
     send(namespace: string, topic: string, ...args: any) {
         const message = makeTipcSendObject(namespace, topic, ...args)
-        setImmediate(() => {
+        setTimeout(() => {
             this.ws?.send(JSON.stringify(message))
             this.tipcListenerComponent.callListeners(namespace, topic, ...args)
         })
@@ -102,7 +102,7 @@ export class TipcBrowserClient implements TipcUntypedClient {
     invoke(namespace: string, topic: string, ...args: any[]): Promise<any> {
         // Replies to an invocation comes on the same namespace with the messageId as topic
         // If the reply is an error, the error listener is "error-"+messageId
-        const message = makeTipcInvokeObject(namespace, topic, ...args)
+        const message = makeTipcInvokeObject(namespace, topic, crypto.randomUUID(), ...args)
         const promise = new Promise<any>((resolve, reject) => {
             let resSub: TipcSubscription, rejSub: TipcSubscription;
             resSub = this.addOnceListener(namespace, message.messageId, (data: any[]) => {

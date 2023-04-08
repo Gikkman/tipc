@@ -1,4 +1,4 @@
-_dist_electron/
+example-static/
 electron/
 test/
 jasmine*

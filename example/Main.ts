@@ -1,7 +1,7 @@
-import { app, BrowserWindow } from 'electron';
-import { join } from 'path';
 import { A, B } from './shared/EventApi';
 import { TipcNodeServer } from '../src/TipcNodeServer';
+import express from 'express';
+import { join } from 'path';
 /************************************************************************
  *  Main behavior
  ************************************************************************/
@@ -39,24 +39,16 @@ TipcNodeServer.create({address: "localhost", port: 8088})
         console.log(`I: Handling -blank- on main`);
         return 'Hello World';
     });
-
-    const createWindow = async () => {
-        const window = new BrowserWindow({
-            width: 800, height: 600,
-            webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false,
-            }
-        });
-        window.loadFile(join(__dirname, './frontend/index.html'))
-        .then(e => {
-            bus.send('a', {data: 1, sender: 'main'});
-            setInterval(() => otherBus.send('b', {data: 2, sender: 'main'}), 5000);
-        });
-        window.webContents.openDevTools();
-    }
-    app.on('ready', createWindow);
+    console.log("Listeners configured")
 })
+
+const app = express()
+app.use((req,res,next) => {
+    console.log(req.url)
+    next()
+})
+app.use(express.static(join(__dirname, '..', 'example-static')))
+app.listen(8080, () => console.log("Listening to http://localhost:8080"))
 
 process.on('SIGHUP', () => process.exit(128 + 1));
 process.on('SIGINT', () => process.exit(128 + 2));
