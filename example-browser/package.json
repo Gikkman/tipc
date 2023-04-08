@@ -8,7 +8,8 @@
     "url": "http://www.github.com/gikkman"
   },
   "scripts": {
-    "build": "rm -rf output && tsc && rollup --bundleConfigAsCjs -c && copyfiles -u 1 frontend/*.html frontend/*.css output/",
+    "prebuild": "rm -rf output && copyfiles -u 3 ../example-shared-resources/frontend/*.css ../example-shared-resources/frontend/*.html output",
+    "build": "tsc && rollup -c",
     "start": "ts-node Main.ts"
   },
   "license": "MIT",

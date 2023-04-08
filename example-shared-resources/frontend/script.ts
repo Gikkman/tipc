@@ -1,4 +1,4 @@
-import { A, B } from '../shared/EventApi';
+import { A, B } from '../EventApi';
 import { TipcBrowserClient } from '../../src/TipcBrowserClient';
 import { TipcNamespaceClient } from '../../src/TipcTypes';
 
