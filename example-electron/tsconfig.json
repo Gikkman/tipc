@@ -3,8 +3,13 @@
     "extends": "../tsconfig.json",
     "compilerOptions": {
         "module": "ES2020",
-        "outDir": "../example-static",
+        "outDir": "output",
         "lib": ["dom"]
     },
-    "include": ["../example/frontend/script.ts"]
+    "include": ["frontend/script.ts"],
+    "ts-node": {
+        "compilerOptions": {
+            "module": "CommonJS"
+        }
+    }
 }

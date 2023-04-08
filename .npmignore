@@ -1,5 +1,5 @@
-example-static/
-electron/
+example-web/
+example-electron/
 test/
 jasmine*
 README.md

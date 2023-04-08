@@ -1,0 +1,28 @@
+<!DOCTYPE html> 
+<html> 
+   <head> 
+      <meta charset = "UTF-8"> 
+      <title>Example app</title>
+
+      <style src="./style.css"></style>
+
+      <!-- Hack to make ES6 modules work on renderer process -->
+      <script> var exports = {}; </script>  
+
+   </head> 
+   <body>
+      <div id="buttons">
+         <button type="button" onclick="bundle.sendA()">Send A Event</button>
+         <button type="button" onclick="bundle.sendB()">Send B Event</button>
+         <button type="button" onclick="bundle.sendC()">Send C Event</button>
+         <button type="button" onclick="bundle.sendD()">Send D Event</button>
+         <button type="button" onclick="bundle.invokeF()">Invoke F Event</button>
+         <button type="button" onclick="bundle.invokeG()">Invoke G Event</button>
+         <button type="button" onclick="bundle.invokeH()">Invoke H Event</button>
+         <button type="button" onclick="bundle.invokeI()">Invoke I Event</button>
+      </div>
+      <div id="container"></div>
+      <ul id="list"></ul>
+   </body> 
+   <script src="./script_rollup.js"> </script>
+</html>
