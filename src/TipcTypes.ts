@@ -19,7 +19,7 @@ type Funcify<T> = {
 };
 export type Args<T, K extends keyof T> = T[K] extends (...args: infer A) => any ? A : never;
 export type Ret<T, K extends keyof T> = T[K] extends (...args: any) => infer U ? U : never;
-export type Typings<T, K extends keyof T, F extends Funcify<T>= Funcify<T>> = Args<F, K>;
+export type Typings<T, K extends keyof T, F extends Funcify<T> = Funcify<T>> = Args<F, K>;
 
 /////////////////////////////////////////////////////////////////////////////
 // Interface types

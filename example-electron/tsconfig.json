@@ -4,7 +4,7 @@
     "compilerOptions": {
         "module": "ES2020",
         "outDir": "output",
-        "lib": ["dom"]
+        "lib": ["DOM", "DOM.Iterable"]
     },
     "include": ["../example-shared-resources/frontend/script.ts"],
     "ts-node": {

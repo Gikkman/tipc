@@ -1,17 +1,13 @@
-export interface A{
-    'a': {data: 1, sender: string};
-    'c': {data: number, sender: string};
-    'd': void;
-    'F': (data: 1, sender: string) => number;
-    'G': (data: 2, sender: string) => number;
-    'I': () => string;
+export interface Operations {
+    'sendVoid': void,
+    'sendArray': [number, number, number],
+    'sendObject': {keyA: number, keyB: string},
+    'sendString': string,
+    'shuffle': (...arg: number[]) => number[]
+    'combine': (prefix: string, suffix: string, body: string) => {result: string}
 }
 
-export interface B{
-    'b': {data: 2, sender: string};
-    'H': (data: [number, number, number]) => number;
-}
-
-export interface C{
-    'a': 'b'
+export interface OtherOperations {
+    'sendNumber': number,
+    'double': (arg: number) => number,
 }

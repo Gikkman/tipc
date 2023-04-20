@@ -1,7 +1,73 @@
+html {
+    background-color: bisque;
+}
+
+.none { grid-area: none; }
+.label { grid-area: label; }
+.void { grid-area: void; }
+.comb { grid-area: comb; }
+.n1 { grid-area: n1; }
+.n2 { grid-area: n2; }
+.n3 { grid-area: n3; }
+.nb1 { grid-area: nb1; }
+.nb2 { grid-area: nb2; }
+.s1 { grid-area: s1; }
+.s2 { grid-area: s2; }
+.s3 { grid-area: s3; }
+.sb1 { grid-area: sb1; }
+.sb2 { grid-area: sb2; }
+.num { grid-area: num; }
+.numb1 { grid-area: numb1; }
+.numb2 { grid-area: numb2; }
+.return { grid-area: return; }
+
+.grid-container {
+  display: grid;
+  grid-template-areas:
+    'label label label label label'
+    'void void none comb comb'
+    'n1 n2 n3 nb1 nb2'
+    's1 s2 s3 sb1 sb2'
+    'num num num numb1 numb2'
+    'return return return return return';
+  gap: 12px;
+  padding: 10px;
+  max-width: 800px;
+  margin: auto;
+}
+
+.grid-container > * {
+  text-align: center;
+  font-size: 28px;
+}
+
 .button {
     font-weight: bold
 }
 
-html {
-    background-color: bisque;
+.small-input {
+	width: 60px;
 }
+
+.messages {
+    opacity: 0;
+}
+
+.fadeOutElement {
+    animation: fadeOut 2s linear 1 forwards;
+}
+
+@keyframes fadeOut {
+    0% {
+      opacity: 0;
+    }
+    5% {
+      opacity: 1;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
