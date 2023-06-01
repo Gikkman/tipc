@@ -21,11 +21,10 @@ const setupServerClient = async <T>(namespaceServer= "default",
 
     const address = m_server_core.getAddressInfo();
     if(!address) { throw "Address undefined" }
-    
+
     m_client_core = await TipcNodeClient.create({address: "localhost", port: address.port, loggerOptions: {logLevel: "OFF"}}).connect()
     m_clientA = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientA);
     m_clientB = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientB);
-    
     return [m_server, m_clientA, m_clientB]
 }
 
@@ -247,5 +246,25 @@ describe("Test TipcNodeClient.invoke", () => {
         } catch (e) {
             expect(e).toContain("A server-side exception occurred")
         }
+    })
+})
+
+
+describe("Test TipcNodeClient.forContractAndNamespace", () => {
+    it("will warn if reusing namespace", async () => {
+        let calledSignal = false;
+        const testLogger = (a: any) => {if(a.includes("already in use")) calledSignal = true;}
+        const voidLogger = (a: any) => {}
+
+        const [server] = await setupServerClient<CallbackInterface>();
+        const address = server.getAddressInfo();
+        if(!address) throw "Server had no address";
+
+        const client = TipcNodeClient.create({address: "localhost", port: address.port, loggerOptions: {logLevel: "DEBUG", warn: testLogger, error: voidLogger, info: voidLogger, debug: voidLogger}});
+        const core = await client.connect();
+        core.forContractAndNamespace<AnyInterface>("test");
+        core.forContractAndNamespace<AnyInterface>("test");
+        expect(calledSignal).toBeTrue();
+        await core.shutdown();
     })
 })

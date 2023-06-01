@@ -198,3 +198,19 @@ describe("Test TipcNodeServer.getAddressInfo", () => {
         expect(server.getAddressInfo()).toBeTruthy()
     })
 })
+
+describe("Test TipcNodeServer.forNamespaceAndContract", () => {
+    it("will warn if reusing namespace", async () => {
+        let calledSignal = false;
+        const testLogger = (a: any) => {if(a.includes("already in use")) calledSignal = true;}
+        const voidLogger = (a: any) => {}
+        
+        const server = TipcNodeServer.create({address:"localhost", port:0, loggerOptions: {logLevel: "DEBUG", warn: testLogger, error: voidLogger, info: voidLogger, debug: voidLogger}});
+        const core = await server.connect();
+        core.forContractAndNamespace<AnyInterface>("test");
+        core.forContractAndNamespace<AnyInterface>("test");
+        expect(calledSignal).toBeTrue();
+
+        await core.shutdown()
+    })
+})

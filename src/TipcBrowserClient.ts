@@ -9,7 +9,8 @@ export class TipcBrowserClient implements TipcUntypedClient {
     protected port: number;
     protected logger: TipcLogger;
     protected ws?: WebSocket;
-
+    private usedNamespaces = new Set<string>();
+    
     protected tipcListenerComponent: TipcListenerComponent;
 
     private constructor(options: TipcClientOptions) {
@@ -29,6 +30,10 @@ export class TipcBrowserClient implements TipcUntypedClient {
     }
 
     public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcNamespaceClient<T> {
+        if(this.usedNamespaces.has(namespace)) {
+            this.logger.warn(`Namespace ${namespace} is already in use for this Tipc instance. If you wish to use the same namespace in several places, you should typically use the same instance. Different instances might use different contract types, which could use overlapping topics.`)
+        }
+        this.usedNamespaces.add(namespace);
         return new TipcNamespaceClientImpl<T>(this, namespace);
     }
 

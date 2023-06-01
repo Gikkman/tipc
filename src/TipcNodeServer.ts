@@ -9,6 +9,7 @@ export class TipcNodeServer implements TipcUntypedServer {
     private wss?: WebSocketServer;
     private options: TipcServerOptions;
     private logger: TipcLogger;
+    private usedNamespaces = new Set<string>();
 
     protected tipcListenerComponent: TipcListenerComponent;
     protected invokeListeners: Map<string, WrappedCallback> = new Map();
@@ -31,6 +32,10 @@ export class TipcNodeServer implements TipcUntypedServer {
     }
 
     public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcNamespaceServer<T> {
+        if(this.usedNamespaces.has(namespace)) {
+            this.logger.warn(`Namespace ${namespace} is already in use for this Tipc instance. If you wish to use the same namespace in several places, you should typically use the same instance. Different instances might use different contract types, which could use overlapping topics.`)
+        }
+        this.usedNamespaces.add(namespace);
         return new TipcNamespaceServerImpl<T>(this, namespace);
     }
 
