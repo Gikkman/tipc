@@ -3,9 +3,13 @@ import { sleep } from "./Helper.test";
 
 type AnyInterface = Record<string, any>
 
+function basicServer() {
+    return TipcNodeServer.create({address:"localhost", port:0, loggerOptions: {logLevel: "OFF"}});
+}
+
 describe("Test TipcNodeServer.addListener()", () => {
     it("will call server-side event listener in same namespace", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
         server.addListener("server-side-without-args", () => counter++)
@@ -16,7 +20,7 @@ describe("Test TipcNodeServer.addListener()", () => {
     })
     
     it("will not call server-side event listener in different namespace", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const namespaceA = core.forContractAndNamespace<AnyInterface>("nsA")
         const namespaceB = core.forContractAndNamespace<AnyInterface>("nsB")
         let counter = 0;
@@ -28,7 +32,7 @@ describe("Test TipcNodeServer.addListener()", () => {
     })
 
     it("will call server-side event listener in same namespace and forward arguments", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
         server.addListener("server-side-with-args", (numA: number, numB: number) => counter+=(numA*numB))
@@ -43,7 +47,7 @@ describe("Test TipcNodeServer.addListener()", () => {
     })
 
     it("will call several server-side event listeners in the same namespace that listen to the same key", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         const server2 = core.forContractAndNamespace<AnyInterface>("ns2")
         let counterA = 0, counterB = 0, counterC = 0;
@@ -61,7 +65,7 @@ describe("Test TipcNodeServer.addListener()", () => {
 
 describe("Test TipcNodeServer.addOnceListener()", () => {
     it("will only call a once-listener once", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
         server.addOnceListener("once-listener", () => counter++)
@@ -76,7 +80,7 @@ describe("Test TipcNodeServer.addOnceListener()", () => {
     })
 
     it("will only call a once-listener once, but keep regular listeners", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counterA = 0, counterB = 0;
         server.addOnceListener("both-listener", () => counterA++)
@@ -96,7 +100,7 @@ describe("Test TipcNodeServer.addOnceListener()", () => {
 
 describe("Test TipcNodeServer's unsubscribing from listeners and once-listeners", () => {
     it("will unsubscribe a regular listener", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
         const handle = server.addListener("remove-listener", () => counter++)
@@ -112,7 +116,7 @@ describe("Test TipcNodeServer's unsubscribing from listeners and once-listeners"
     })
 
     it("will unsubscribe once-listener before it was called", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
         const handle = server.addOnceListener("remove-once-listener", () => counter++)
@@ -124,7 +128,7 @@ describe("Test TipcNodeServer's unsubscribing from listeners and once-listeners"
     })
 
     it("will accept unsubscribing an already unsubscribed listener", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
         const handle = server.addListener("remove-listener", () => counter++)
@@ -133,7 +137,7 @@ describe("Test TipcNodeServer's unsubscribing from listeners and once-listeners"
     })
 
     it("will accept unsubscribe to once-listener after it was called", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         let counter = 0;
         const handle = server.addOnceListener("remove-once-listener-post-call", () => counter++)
@@ -148,7 +152,7 @@ describe("Test TipcNodeServer's unsubscribing from listeners and once-listeners"
 
 describe("Test TipcNodeServer.addHandler", () => {
     it("will reject adding a handler to a namespace+key already added", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
         server.addHandler("reject-handler", cb)
@@ -156,7 +160,7 @@ describe("Test TipcNodeServer.addHandler", () => {
     })
 
     it("will reject adding a once-handler to a namespace+key already added", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
         server.addHandler("reject-handler", cb)
@@ -164,7 +168,7 @@ describe("Test TipcNodeServer.addHandler", () => {
     })
 
     it("will reject adding a handler to a namespace+key already added (once-handler)", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
         server.addOnceHandler("reject-handler", cb)
@@ -172,7 +176,7 @@ describe("Test TipcNodeServer.addHandler", () => {
     })
 
     it("will reject adding a once-handler to a namespace+key already added (once-handler)", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         const cb = () => {}
         server.addOnceHandler("reject-handler", cb)
@@ -182,14 +186,14 @@ describe("Test TipcNodeServer.addHandler", () => {
 
 describe("Test TipcNodeServer.getAddressInfo", () => {
     it("will return 'undefined' if not connected to a websocket", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         await core.shutdown()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         expect(server.getAddressInfo()).toBeUndefined()
     })
 
     it("will return something if connected to a websocket", async () => {
-        const core = await TipcNodeServer.create({address:"localhost", port:0}).connect()
+        const core = await basicServer().connect()
         const server = core.forContractAndNamespace<AnyInterface>("ns")
         expect(server.getAddressInfo()).toBeTruthy()
     })

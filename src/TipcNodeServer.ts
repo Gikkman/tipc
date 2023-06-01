@@ -3,16 +3,20 @@ import { Callback, WrappedCallback, TipcMessageObject, Topic, TipcSubscription, 
 import { makeKey, makeTipcErrorObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
 import { TipcNamespaceServerImpl } from "./TipcNamespaceServerImpl";
+import { TipcLogger } from "./TipcLogger";
 
 export class TipcNodeServer implements TipcUntypedServer {
     private wss?: WebSocketServer;
-    private options: TipcServerOptions
+    private options: TipcServerOptions;
+    private logger: TipcLogger;
 
-    protected tipcListenerComponent = new TipcListenerComponent()
+    protected tipcListenerComponent: TipcListenerComponent;
     protected invokeListeners: Map<string, WrappedCallback> = new Map();
 
     protected constructor(options?: TipcServerOptions) {
         this.options = { checkTimeouts: false, ...(options ?? {noWsServer: true}) }
+        this.logger = new TipcLogger({messagePrefix: "[Tipc Server]", ...options?.loggerOptions});
+        this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
 
     public static create(options?: TipcServerOptions): TipcFactory<TipcServer> {
@@ -84,7 +88,7 @@ export class TipcNodeServer implements TipcUntypedServer {
         const clientAlive: Map<WebSocket, boolean> = new Map();
         const wss = new WebSocketServer(this.options);
         wss.on("connection", ws => {
-            console.log("Server: Client connecting")
+            this.logger.debug("New client connected")
             clientAlive.set(ws, true);
             ws.on("pong", () => clientAlive.set(ws, true))
             ws.on("message", (data, isBinary) => {
@@ -93,7 +97,7 @@ export class TipcNodeServer implements TipcUntypedServer {
                 try {
                     obj = JSON.parse(msg);
                 } catch (e) {
-                    console.error("Server: Could not JSON parse message: " + msg)
+                    this.logger.warn("Could not JSON parse message: %s", msg)
                     return;
                 }
                 if( validateMessageObject(obj) ) {
@@ -101,10 +105,10 @@ export class TipcNodeServer implements TipcUntypedServer {
                 }
             })
             ws.on("close", () => {
-                console.log("Server: Client closed")
+                this.logger.debug("Client disconnected")
             })
             ws.onerror = (err) => {
-                console.error("Server: Client error ["+err+"]")
+                this.logger.debug("Client error [%s]", err.message)
             };
         })
 
@@ -115,7 +119,7 @@ export class TipcNodeServer implements TipcUntypedServer {
             }
             wss.clients.forEach(ws => {
                 if( clientAlive.get(ws) === false ) {
-                    console.log(`Server: Terminating client ${ws.url} due to timeout`)
+                    this.logger.info(`Terminating client ${ws.url} due to timeout`)
                     return ws.terminate();
                 }
                 clientAlive.set(ws, false);
@@ -124,19 +128,17 @@ export class TipcNodeServer implements TipcUntypedServer {
         }, 30_000)
 
         wss.on("close", (e: string) => {
-            console.log("Closing server")
-            console.log(e)
+            this.logger.info("Websocket Server closed")
             clearInterval(interval);
         })
         
         wss.on('error', e => {
-            console.error("Server error")
-            console.error(e)
+            this.logger.error("Server error: %s", e.message)
         })
 
         return new Promise<void>((resolve) => {
             wss.on("listening", () => {
-                console.log("WSS open")
+                this.logger.info("Websocket Server opened")
                 this.wss = wss;
                 resolve();
             })
@@ -198,12 +200,14 @@ export class TipcNodeServer implements TipcUntypedServer {
                     const msg = `A server-side exception occurred. Please see the server logs for message Id ${obj.messageId}`;
                     const reply = makeTipcErrorObject(obj.namespace, obj.messageId, msg)
                     caller.send(JSON.stringify(reply))
+                    this.logger.error("Invoking a message handler threw an exception. Message Id %s\n%s", obj.messageId, e)
                 }
             }
             else {
-                const msg = `No handler defined for namespace ${obj.namespace} and key ${obj.topic.toString()}`;
+                const msg = `No handler defined for namespace ${obj.namespace} and key ${obj.topic}`;
                 const reply = makeTipcErrorObject(obj.namespace, obj.messageId, msg)
                 caller.send(JSON.stringify(reply))
+                this.logger.error("Invoke request came in, but no handler was defined. Namespace %s and key %s", obj.namespace, obj.topic)
             }
         })
     }

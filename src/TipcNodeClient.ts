@@ -2,23 +2,27 @@ import { WebSocket } from "ws";
 import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
 import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
-import { Callback, TipcUntypedClient, TipcSubscription, TipcNamespaceClient, TipcClient, TipcFactory, TipcAddressInfo } from "./TipcTypes";
+import { Callback, TipcUntypedClient, TipcSubscription, TipcNamespaceClient, TipcClient, TipcFactory, TipcAddressInfo, TipcClientOptions } from "./TipcTypes";
 import { randomUUID } from "crypto";
+import { TipcLogger } from "./TipcLogger";
 
 export class TipcNodeClient implements TipcUntypedClient {
+    protected logger: TipcLogger;
     protected host: string;
     protected port: number;
     protected ws?: WebSocket;
 
-    protected tipcListenerComponent = new TipcListenerComponent()
+    protected tipcListenerComponent: TipcListenerComponent;
 
-    private constructor(url: TipcAddressInfo) {
-        this.host = url.address;
-        this.port = url.port;
+    private constructor(options: TipcClientOptions) {
+        this.port = options.port;
+        this.host = options.address;
+        this.logger = new TipcLogger({messagePrefix:"[Tipc Client]" ,...options.loggerOptions});
+        this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
 
-    public static create(url: TipcAddressInfo): TipcFactory<TipcClient> {
-        const instance = new TipcNodeClient(url);
+    public static create(options: TipcClientOptions): TipcFactory<TipcClient> {
+        const instance = new TipcNodeClient(options);
         return instance;
     }
 
@@ -66,7 +70,7 @@ export class TipcNodeClient implements TipcUntypedClient {
             try {
                 obj = JSON.parse(msg);
             } catch (e) {
-                console.error("Server: Could not JSON parse message: " + msg)
+                this.logger.warn("Could not JSON parse message: %s", msg)
                 return;
             }
             if( validateMessageObject(obj) ) {
@@ -77,10 +81,12 @@ export class TipcNodeClient implements TipcUntypedClient {
             }
         })
         ws.on('close', () => { 
+            this.logger.info("Websocket connection closed")
             clearTimeout(pingTimeout);
         })
         
         return new Promise<WebSocket>((resolve) => {
+            this.logger.info("Websocket connection established")
             ws.once('open', () => {
                 resolve(ws)
             })

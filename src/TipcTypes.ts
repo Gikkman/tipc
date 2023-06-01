@@ -1,5 +1,6 @@
 import {Server as HTTPServer} from 'http'
 import {Server as HTTPSServer} from 'http'
+import { TipcLoggerOptions } from './TipcLogger';
 
 /////////////////////////////////////////////////////////////////////////////
 // Type for extracting properties from a dictionary which's value matches
@@ -155,6 +156,10 @@ export type TipcUntypedClient = {
  * will be managed by Tipc, but if the HTTPServer is closed externally, the Websocket server will cease to
  * function.
  */
-export type TipcServerOptions = {checkTimeouts?: boolean, noWsServer: true} 
-                              | {checkTimeouts?: boolean, address: string, port: number} 
-                              | {checkTimeouts?: boolean, server: HTTPServer | HTTPSServer}
+export type TipcServerOptions = {checkTimeouts?: boolean, loggerOptions?: TipcLoggerOptions} &
+                              ( {noWsServer: true} 
+                              | {address: string, port: number} 
+                              | {server: HTTPServer | HTTPSServer} )
+
+export type TipcClientOptions = { address: string, port: number, 
+                                  loggerOptions?: TipcLoggerOptions }

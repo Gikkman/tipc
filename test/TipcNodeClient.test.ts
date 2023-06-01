@@ -16,13 +16,13 @@ const setupServerClient = async <T>(namespaceServer= "default",
                                  namespaceClientA = "default", 
                                  namespaceClientB = "default"
     ): Promise<[TipcNamespaceServer<T>, TipcNamespaceClient<T>, TipcNamespaceClient<T>]> => {
-    m_server_core = await TipcNodeServer.create({address:"localhost", port: 0}).connect()
+    m_server_core = await TipcNodeServer.create({address:"localhost", port: 0, loggerOptions: {logLevel: "OFF"}}).connect()
     m_server = m_server_core.forContractAndNamespace<T | AnyInterface>(namespaceServer)
 
     const address = m_server_core.getAddressInfo();
     if(!address) { throw "Address undefined" }
     
-    m_client_core = await TipcNodeClient.create({address: "localhost", port: address.port}).connect()
+    m_client_core = await TipcNodeClient.create({address: "localhost", port: address.port, loggerOptions: {logLevel: "OFF"}}).connect()
     m_clientA = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientA);
     m_clientB = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientB);
     

@@ -1,22 +1,26 @@
 import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
+import { TipcLogger, TipcLoggerOptions } from "./TipcLogger";
 import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
-import { Callback, TipcUntypedClient, TipcSubscription, TipcNamespaceClient, TipcClient, TipcFactory, TipcAddressInfo } from "./TipcTypes";
+import { Callback, TipcUntypedClient, TipcSubscription, TipcNamespaceClient, TipcClient, TipcFactory, TipcAddressInfo, TipcClientOptions } from "./TipcTypes";
 
 export class TipcBrowserClient implements TipcUntypedClient {
     protected host: string;
     protected port: number;
+    protected logger: TipcLogger;
     protected ws?: WebSocket;
 
-    protected tipcListenerComponent = new TipcListenerComponent()
+    protected tipcListenerComponent: TipcListenerComponent;
 
-    private constructor(url: TipcAddressInfo) {
-        this.host = url.address;
-        this.port = url.port;
+    private constructor(options: TipcClientOptions) {
+        this.host = options.address;
+        this.port = options.port;
+        this.logger = new TipcLogger({messagePrefix: "[Tipc Client]", ...options.loggerOptions})
+        this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
 
-    public static create(url: TipcAddressInfo): TipcFactory<TipcClient> {
-        const instance = new TipcBrowserClient(url);
+    public static create(options: TipcClientOptions): TipcFactory<TipcClient> {
+        const instance = new TipcBrowserClient(options);
         return instance;
     }
 
@@ -48,7 +52,7 @@ export class TipcBrowserClient implements TipcUntypedClient {
     private initWs(url: string) {
         const ws = new WebSocket(url);
         ws.addEventListener('error', (ev) => {
-            console.error(ev)
+            this.logger.error('Error: %s',ev)
         });
         ws.addEventListener('message', (ev) => {
             const msg =ev.data
@@ -56,7 +60,7 @@ export class TipcBrowserClient implements TipcUntypedClient {
             try {
                 obj = JSON.parse(msg);
             } catch (e) {
-                console.error("Server: Could not JSON parse message: " + msg)
+                this.logger.warn("Could not JSON parse message: %s", msg)
                 return;
             }
             if( validateMessageObject(obj) ) {
@@ -67,10 +71,11 @@ export class TipcBrowserClient implements TipcUntypedClient {
             }
         });
         ws.addEventListener('close', (e) => { 
-            console.error(e);
+            this.logger.info("Websocket connection closed")
         })
         
         return new Promise<WebSocket>((resolve) => {
+            this.logger.info("Websocket connection established")
             ws.addEventListener('open', () => {
                 resolve(ws)
             });
