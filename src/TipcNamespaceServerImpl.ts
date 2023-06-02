@@ -13,19 +13,19 @@ export class TipcNamespaceServerImpl<T> implements TipcNamespaceServer<T> {
         K extends keyof T,
         V extends Typings<T,K>
     >(topic: K, callback: (...params: V) => any) {
-        return this.core.addListener(this.namespace, topic, callback)
+        return this.core.addListener(this.namespace, topic, callback);
     }
     addOnceListener<
         K extends keyof T,
         V extends Typings<T,K>
     >(topic: K, callback: (...params: V) => any) {
-        return this.core.addOnceListener(this.namespace, topic, callback)
+        return this.core.addOnceListener(this.namespace, topic, callback);
     }
     send<
         K extends keyof T,
         V extends Typings<T,K>
     >(topic: K, ...args: V): void {
-        return this.core.broadcast(this.namespace, topic, ...args)
+        return this.core.broadcast(this.namespace, topic, ...args);
     }
 
     addHandler<
@@ -33,17 +33,17 @@ export class TipcNamespaceServerImpl<T> implements TipcNamespaceServer<T> {
         R extends Ret<T,K>,
         P extends Args<T,K>,
     > (topic: K, callback: (...params: P) => R | Promise<R>) {
-        return this.core.addHandler(this.namespace, topic, callback)
+        return this.core.addHandler(this.namespace, topic, callback);
     }
     addOnceHandler<
         K extends keyof ExtractFunctions<T>,
         R extends Ret<T,K>,
         P extends Args<T,K>,
     > (topic: K, callback: (...params: P) => R | Promise<R>) {
-        return this.core.addOnceHandler(this.namespace, topic, callback)
+        return this.core.addOnceHandler(this.namespace, topic, callback);
     }
 
     getAddressInfo() {
-        return this.core.getAddressInfo()
+        return this.core.getAddressInfo();
     }
 }

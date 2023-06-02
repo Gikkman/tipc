@@ -9,8 +9,8 @@ export function makeTipcSendObject(namespace: string, topic: Topic, ...args: any
         method: "send",
         namespace,
         topic: topic.toString(),
-        data: args
-    }
+        data: args,
+    };
 }
 
 export function makeTipcInvokeObject(namespace: string, topic: Topic, uuid: string, ...args: any[]): TipcInvokeObject {
@@ -19,8 +19,8 @@ export function makeTipcInvokeObject(namespace: string, topic: Topic, uuid: stri
         namespace,
         topic: topic.toString(),
         data: args,
-        messageId: uuid
-    }
+        messageId: uuid,
+    };
 }
 
 export function makeTipcErrorObject(namespace: string, topic: Topic, message: string): TipcErrorObject {
@@ -28,21 +28,22 @@ export function makeTipcErrorObject(namespace: string, topic: Topic, message: st
         method: "error",
         namespace,
         topic: topic.toString(),
-        data: [message]
-    }
+        data: [message],
+    };
 }
 
 export function validateMessageObject(obj: any): obj is TipcMessageObject {
     const temp = obj as TipcMessageObject;
-    const primary = (!!temp.namespace) 
-                    && (!!temp.topic) 
+    const primary = (!!temp.namespace)
+                    && (!!temp.topic)
                     && (temp.method==="send"
                         ||temp.method==="invoke"
                         ||temp.method==="error");
     // TipcInvokeObject has an additional property, messageId
     if(primary && temp.method==="invoke") {
-        return (!!temp.messageId)
-    } else {
-        return primary
+        return (!!temp.messageId);
+    }
+    else {
+        return primary;
     }
 }

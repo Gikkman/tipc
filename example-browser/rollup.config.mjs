@@ -3,6 +3,6 @@ export default {
     output: {
         file: 'output/script_rollup.js',
         format: 'iife',
-        name: 'bundle'
+        name: 'bundle',
     },
-}
+};

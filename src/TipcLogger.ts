@@ -1,5 +1,3 @@
-import { format } from "util";
-
 type LogLevel = "DEBUG"|"INFO"|"WARN"|"ERROR"|"OFF";
 
 type LogSink = (s: string, ...rest: unknown[]) => void;
@@ -19,8 +17,8 @@ const defaultOptions: Required<TipcLoggerOptions> = {
     debug: console.log,
     info: console.log,
     warn: console.warn,
-    error: console.error
-}
+    error: console.error,
+};
 
 export class TipcLogger {
     private messagePrefix: string;
@@ -36,7 +34,7 @@ export class TipcLogger {
      * @param options Options for this logger instance.
      */
     constructor(options?: TipcLoggerOptions) {
-        const opts = {...defaultOptions, ...options}
+        const opts = {...defaultOptions, ...options};
         this.messagePrefix = opts.messagePrefix;
         this.logLevel = levelToLogScore(opts.logLevel);
         this.debugSink = opts.debug;
@@ -46,26 +44,34 @@ export class TipcLogger {
     }
 
     debug(s: string, ...rest: any) {
-        if(levelToLogScore("DEBUG") < this.logLevel) return;
-        const message = formatMessage(this.messagePrefix, s, ...rest)
+        if(levelToLogScore("DEBUG") < this.logLevel) {
+            return;
+        }
+        const message = formatMessage(this.messagePrefix, s, ...rest);
         this.debugSink(message);
     }
 
     info(s: string, ...rest: any) {
-        if(levelToLogScore("INFO") < this.logLevel) return;
-        const message = formatMessage(this.messagePrefix, s, ...rest)
+        if(levelToLogScore("INFO") < this.logLevel) {
+            return;
+        }
+        const message = formatMessage(this.messagePrefix, s, ...rest);
         this.infoSink(message);
     }
 
     warn(s: string, ...rest: any) {
-        if(levelToLogScore("WARN") < this.logLevel) return;
-        const message = formatMessage(this.messagePrefix, s, ...rest)
+        if(levelToLogScore("WARN") < this.logLevel) {
+            return;
+        }
+        const message = formatMessage(this.messagePrefix, s, ...rest);
         this.warnSink(message);
     }
 
     error(s: string, ...rest: any) {
-        if(levelToLogScore("ERROR") < this.logLevel) return;
-        const message = formatMessage(this.messagePrefix, s, ...rest)
+        if(levelToLogScore("ERROR") < this.logLevel) {
+            return;
+        }
+        const message = formatMessage(this.messagePrefix, s, ...rest);
         this.errorSink(message);
     }
 }
@@ -81,15 +87,17 @@ function levelToLogScore(level: LogLevel) {
 }
 
 function formatMessage(prefix: string, message: string, ...args: any[]) {
-    let pre = (prefix && prefix.length > 0 ) ? prefix + " " : "";
-    const mapped = args.map(el => {
+    const pre = (prefix && prefix.length > 0 ) ? prefix + " " : "";
+    let msg = pre+message;
+    args.map(el => {
         const type = typeof el;
-        if(type === "object" || Array.isArray(el))
-            return JSON.stringify(el)
-        if(type === "function")
-            return el.toString()
-        else
-            return el
-    });
-    return format(pre + message, ...mapped)
+        if(type === "object" || Array.isArray(el)) {
+            return JSON.stringify(el);
+        }
+        if(type === "function") {
+            return el.toString();
+        }
+        return el;
+    }).forEach(el => msg = msg.replace("%s", el));
+    return msg;
 }

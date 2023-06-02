@@ -16,6 +16,7 @@
     "browser": "./dist/umd/index.browser.js"
   },
   "scripts": {
+    "lint": "eslint .",
     "test": "jasmine --config=jasmine.json",
     "example:electron": "cd example-electron && npm run build && npm run start",
     "example:browser": "cd example-browser && npm run build && npm run start",
@@ -37,6 +38,10 @@
     "@types/jasmine": "^4.0.3",
     "@types/node": "^18.0.6",
     "@types/ws": "^8.5.3",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "@typescript-eslint/parser": "^5.59.8",
+    "eslint": "^8.41.0",
+    "eslint-plugin-editorconfig": "^4.0.3",
     "jasmine": "^4.2.1",
     "jasmine-spec-reporter": "^7.0.0",
     "ts-node": "^10.9.1",

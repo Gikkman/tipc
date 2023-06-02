@@ -1,5 +1,5 @@
-import {Server as HTTPServer} from 'http'
-import {Server as HTTPSServer} from 'http'
+import {Server as HTTPServer} from 'http';
+import {Server as HTTPSServer} from 'http';
 import { TipcLoggerOptions } from './TipcLogger';
 
 /////////////////////////////////////////////////////////////////////////////
@@ -58,8 +58,8 @@ export interface TipcNamespaceServer<T> extends TipcCore<T> {
 
 export interface TipcNamespaceClient<T> extends TipcCore<T> {
     invoke<
-    K extends keyof ExtractFunctions<T>,
-    R extends Ret<T,K>
+        K extends keyof ExtractFunctions<T>,
+        R extends Ret<T,K>
     >(topic: K, ...args: Args<T,K>): Promise<R>;
 }
 
@@ -70,7 +70,7 @@ export interface TipcFactory<T> {
     connect(): Promise<T>,
 }
 /**
- * Represents a opened TipcServer. To be able to add/call listeners, you need to create a namespaced instance, using the 
+ * Represents a opened TipcServer. To be able to add/call listeners, you need to create a namespaced instance, using the
  * `forContractAndNamespace` method.
  */
 export interface TipcServer {
@@ -79,7 +79,7 @@ export interface TipcServer {
     forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcNamespaceServer<T>
 }
 /**
- * Represents an established TipcClient connection. To be able to add/call listeners, you need to create a namespaced instance, using the 
+ * Represents an established TipcClient connection. To be able to add/call listeners, you need to create a namespaced instance, using the
  * `forContractAndNamespace` method.
  */
 export interface TipcClient {
@@ -125,10 +125,10 @@ export type TipcMessageObject = TipcSendObject | TipcInvokeObject | TipcErrorObj
 
 export type TipcUntypedServer = {
     broadcast(namespace: string, topic: Topic, ...args: any[]): void,
-    
+
     addListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
     addOnceListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
-    
+
     addHandler(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
     addOnceHandler(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
 
@@ -137,29 +137,28 @@ export type TipcUntypedServer = {
 export type TipcUntypedClient = {
     send(namespace: string, topic: Topic, ...args: any[]): void,
     invoke(namespace: string, topic: Topic, ...args: any[]): Promise<any>,
-    
+
     addListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
     addOnceListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
 }
 
 /**
  * **Tipc Server Options**
- * 
+ *
  * When specifying {noWsServer: true}, no Websocket server will be created, and you can use the Tipc instance
  * as a pure pub/sub system.
- * 
+ *
  * When supplying a host and port, a new Websocket server instance will be create. This instance will
  * be managed by Tipc and properly shutdown once the `shutdown()` method is called. To use a random port, supply
  * port number `0`.
- * 
+ *
  * When supplying a HTTPServer, Tipc will create a Websocket server from that HTTPServer. The Websocket server
  * will be managed by Tipc, but if the HTTPServer is closed externally, the Websocket server will cease to
  * function.
  */
 export type TipcServerOptions = {checkTimeouts?: boolean, loggerOptions?: TipcLoggerOptions} &
-                              ( {noWsServer: true} 
-                              | {address: string, port: number} 
-                              | {server: HTTPServer | HTTPSServer} )
+( {noWsServer: true}
+| {address: string, port: number}
+| {server: HTTPServer | HTTPSServer} )
 
-export type TipcClientOptions = { address: string, port: number, 
-                                  loggerOptions?: TipcLoggerOptions }
+export type TipcClientOptions = { address: string, port: number, loggerOptions?: TipcLoggerOptions }
