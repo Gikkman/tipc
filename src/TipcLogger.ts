@@ -23,13 +23,18 @@ const defaultOptions: Required<TipcLoggerOptions> = {
 }
 
 export class TipcLogger {
-    messagePrefix: string;
-    logLevel: ReturnType<typeof levelToLogScore>;
-    debugSink: LogSink;
-    infoSink: LogSink;
-    warnSink: LogSink;
-    errorSink: LogSink;
+    private messagePrefix: string;
+    private logLevel: ReturnType<typeof levelToLogScore>;
+    private debugSink: LogSink;
+    private infoSink: LogSink;
+    private warnSink: LogSink;
+    private errorSink: LogSink;
 
+    /**
+     * Creates a new TipcLoggerInstance. Defaults to loglevel `INFO`, and
+     * uses `console` for output.
+     * @param options Options for this logger instance.
+     */
     constructor(options?: TipcLoggerOptions) {
         const opts = {...defaultOptions, ...options}
         this.messagePrefix = opts.messagePrefix;
