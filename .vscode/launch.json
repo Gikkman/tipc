@@ -1,23 +1,65 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Debug Main Process",
-        "type": "node",
-        "request": "launch",
-        "program": "${workspaceRoot}/electron/Main.ts",
-        "stopOnEntry": false,
-        "preLaunchTask": "npm: compile",
-        "outFiles": ["${workspaceRoot}/_compile/**/*.js"],
-        "sourceMaps": true,
-        "cwd": "${workspaceRoot}",
-        "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
-        "windows": {
-          "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron.cmd"
-        },
-        "args" : [],
-        "console": "internalConsole",
-        "outputCapture": "std",
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Main Process",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
+      },
+      "args" : ["_dist_electron/electron/Main.js"],
+      "outputCapture": "std",
+    },
+    {
+      "name": "Test",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": [
+        "run",
+        "test"
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "smartStep": true,
+      "sourceMaps": true,
+      
+      
+      "outputCapture": "std",
+      "internalConsoleOptions": "openOnSessionStart",
+      "env": {
+        "JASMINE_TIMEOUT": "3600000",
+        "TIPC_CHECK_CONNECTION_TIMEOUT": "false"
       }
-    ]
-  }
+    },
+    {
+      "name": "Test this file",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": [
+        "run",
+        "test",
+        "${file}"
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "smartStep": true,
+      "sourceMaps": true,
+      
+      
+      "outputCapture": "std",
+      "internalConsoleOptions": "openOnSessionStart",
+      "env": {
+        "JASMINE_TIMEOUT": "3600000",
+        "TIPC_CHECK_CONNECTION_TIMEOUT": "false"
+      }
+    }
+  ],
+  "compounds": []
+}

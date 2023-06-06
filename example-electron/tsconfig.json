@@ -1,0 +1,15 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "module": "ES2020",
+        "outDir": "output",
+        "lib": ["DOM", "DOM.Iterable"]
+    },
+    "include": ["../example-shared-resources/frontend/script.ts"],
+    "ts-node": {
+        "compilerOptions": {
+            "module": "CommonJS"
+        }
+    }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "example-electron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Main.ts",
+  "author": {
+    "name": "Gikkman",
+    "url": "http://www.github.com/gikkman"
+  },
+  "scripts": {
+    "prebuild": "rm -rf output && copyfiles -u 3 ../example-shared-resources/frontend/*.css ../example-shared-resources/frontend/*.html output",
+    "build": "tsc && rollup -c",
+    "start": "electron -r ts-node/register ."
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "copyfiles": "^2.4.1",
+    "electron": "^24.0.0",
+    "rollup": "^3.20.2"
+  }
+}

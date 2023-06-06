@@ -1,0 +1,32 @@
+<!DOCTYPE html> 
+<html> 
+   <head> 
+      <meta charset = "UTF-8"> 
+      <title>Example</title>
+
+      <link href="style.css" rel="stylesheet"></style>
+   </head> 
+   <body>
+   <div class="grid-container">
+      <p class="messages sent-message label">Message sent! (Check server logs)</p>
+      <div class="none"></div>
+      <button type="button" class="void" onclick="bundle.sendVoid()">Send Void</button>
+      <button type="button" class="comb" onclick="bundle.sendObject()">Send Object</button>
+      <input id="n1" type="number" class="small-input n1" value=0>
+      <input id="n2" type="number" class="small-input n2" value=1>
+      <input id="n3" type="number" class="small-input n3" value=2>
+      <button type="button" class="nb1" onclick="bundle.sendArray()">Send Array</button>
+      <button type="button" class="nb2" onclick="bundle.sendShuffle()">Shuffle Array</button>
+      <input id="s1" type="string" class="small-input s1" value="a">
+      <input id="s2" type="string" class="small-input s2" value="b">
+      <input id="s3" type="string" class="small-input s3" value="c">
+      <button type="button" class="sb1" onclick="bundle.sendString()">Send String</button>
+      <button type="button" class="sb2" onclick="bundle.sendCombine()">Combine Strings</button>
+      <input id="num" type="number" class="small-input num" value=1>
+      <button type="button" class="numb1" onclick="bundle.sendNumber()">Send Number</button>
+      <button type="button" class="numb2" onclick="bundle.sendDouble()">Double Number</button>
+      <p id="return-value" class="return messages"></p>
+   </div>
+   </body> 
+   <script src="script_rollup.js"> </script>
+</html>
