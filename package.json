@@ -18,8 +18,8 @@
   "scripts": {
     "lint": "eslint .",
     "test": "jasmine --config=jasmine.json",
-    "example:electron": "cd example-electron && npm run build && npm run start",
-    "example:browser": "cd example-browser && npm run build && npm run start",
+    "example:electron": "cd example-electron && npm install && npm run build && npm run start",
+    "example:browser": "cd example-browser && npm install && npm run build && npm run start",
     "compile": "rm -rf dist && npm run compile:cjs && npm run compile:mjs && npm run compile:umd && ./fixup.sh",
     "compile:cjs": "tsc -p config/tsconfig.cjs.json",
     "compile:mjs": "tsc -p config/tsconfig.mjs.json",

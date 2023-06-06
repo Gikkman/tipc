@@ -92,10 +92,10 @@ export class TipcNodeClient implements TipcUntypedClient {
             }
             if( validateMessageObject(obj) ) {
                 if(obj.method === "error") {
-                    this.tipcListenerComponent.callListeners(obj.namespace, "error-"+obj.topic, ...obj.data);
+                    this.tipcListenerComponent.callListeners(obj.namespace, "error-"+obj.topic, obj.data);
                 }
                 else {
-                    this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, ...obj.data);
+                    this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, obj.data);
                 }
             }
         });
@@ -124,10 +124,10 @@ export class TipcNodeClient implements TipcUntypedClient {
     }
 
     send(namespace: string, topic: string, ...args: any) {
-        const message = makeTipcSendObject(namespace, topic, ...args);
+        const message = makeTipcSendObject(namespace, topic, args);
         setTimeout(() => {
             this.ws?.send(JSON.stringify(message));
-            this.tipcListenerComponent.callListeners(namespace, topic, ...args);
+            this.tipcListenerComponent.callListeners(namespace, topic, args);
         });
     }
 
@@ -137,7 +137,7 @@ export class TipcNodeClient implements TipcUntypedClient {
     invoke(namespace: string, topic: string, ...args: any[]): Promise<any> {
         // Replies to an invocation comes on the same namespace with the messageId as topic
         // If the reply is an error, the error listener is "error-"+messageId
-        const message = makeTipcInvokeObject(namespace, topic, randomUUID(), ...args);
+        const message = makeTipcInvokeObject(namespace, topic, randomUUID(), args);
         const promise = new Promise<any>((resolve, reject) => {
             let rejSub: TipcSubscription | undefined = undefined;
             const resSub = this.addOnceListener(namespace, message.messageId, (data: any[]) => {

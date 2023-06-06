@@ -173,7 +173,7 @@ export class TipcNodeServer implements TipcUntypedServer {
             this.callHandler(ws, obj);
         }
         else if ( obj.method === "send" ) {
-            this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, ...obj.data);
+            this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, obj.data);
         }
     }
 
@@ -189,12 +189,12 @@ export class TipcNodeServer implements TipcUntypedServer {
     }
 
     broadcast(namespace: string, topic: string, ...args: any[]) {
-        const message = makeTipcSendObject(namespace, topic, ...args);
+        const message = makeTipcSendObject(namespace, topic, args);
         const str = JSON.stringify(message);
         this.wss?.clients.forEach(ws => {
             ws.send(str);
         });
-        this.tipcListenerComponent.callListeners(namespace, topic, ...args);
+        this.tipcListenerComponent.callListeners(namespace, topic, args);
     }
 
     /////////////////////////////////////////////////////////////
@@ -219,7 +219,7 @@ export class TipcNodeServer implements TipcUntypedServer {
             if(handler) {
                 try {
                     const result = await handler.callback(...obj.data);
-                    const reply = makeTipcSendObject(obj.namespace, obj.messageId, result);
+                    const reply = makeTipcSendObject(obj.namespace, obj.messageId, [result]);
                     caller.send(JSON.stringify(reply));
                 }
                 catch (e) {

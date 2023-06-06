@@ -4,7 +4,7 @@ export function makeKey(namespace: string, topic: Topic) {
     return `${namespace}::${topic.toString()}`;
 }
 
-export function makeTipcSendObject(namespace: string, topic: Topic, ...args: any[]): TipcSendObject {
+export function makeTipcSendObject(namespace: string, topic: Topic, args: unknown[]): TipcSendObject {
     return {
         method: "send",
         namespace,
@@ -13,7 +13,7 @@ export function makeTipcSendObject(namespace: string, topic: Topic, ...args: any
     };
 }
 
-export function makeTipcInvokeObject(namespace: string, topic: Topic, uuid: string, ...args: any[]): TipcInvokeObject {
+export function makeTipcInvokeObject(namespace: string, topic: Topic, uuid: string, args: unknown[]): TipcInvokeObject {
     return {
         method: "invoke",
         namespace,

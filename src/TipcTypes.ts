@@ -109,7 +109,7 @@ export type Topic = string|number|symbol;
 type TipcMessageBase = {
     namespace: string,
     topic: string,
-    data: any[]
+    data: unknown[]
 };
 export type TipcInvokeObject = {
     method: "invoke",

@@ -39,7 +39,7 @@ export class TipcListenerComponent {
         }};
     }
 
-    callListeners(namespace: string, topic: Topic, ...args: any[]) {
+    callListeners(namespace: string, topic: Topic, args: any[]) {
         this.logger.debug("Calling listeners for %s:%s", namespace, topic);
         const fullKey = makeKey(namespace, topic);
         const listeners = this.sendListeners.get(fullKey) ?? [];

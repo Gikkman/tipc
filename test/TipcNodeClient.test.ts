@@ -214,6 +214,17 @@ describe("Test TipcNodeClient.invoke", () => {
         expect(val2.num).toBe(5);
     });
 
+    it("will call invoke handler and correctly pass object", async () => {
+        const [server, client] = await setupServerClient<CallbackInterface>();
+        server.addHandler("invoke-handler-obj", (n) => ({num: n.key}));
+
+        const val1 = await client.invoke("invoke-handler-obj", {key: 1});
+        expect(val1.num).toBe(1);
+
+        const val2 = await client.invoke("invoke-handler-obj", {key: 5});
+        expect(val2.num).toBe(5);
+    });
+
     it("will call invoke handler and return array", async () => {
         const [server, client] = await setupServerClient<CallbackInterface>();
         server.addHandler("invoke-handler-arr", (n) => [n,n]);
@@ -225,6 +236,19 @@ describe("Test TipcNodeClient.invoke", () => {
         const val2 = await client.invoke("invoke-handler-arr", 5);
         expect(val2[0]).toBe(5);
         expect(val2[1]).toBe(5);
+    });
+
+    it("will call invoke handler and correctly pass array", async () => {
+        const [server, client] = await setupServerClient<CallbackInterface>();
+        server.addHandler("invoke-handler-arr", (arr) => [arr[0], arr[1]]);
+
+        const val1 = await client.invoke("invoke-handler-arr", [1,2]);
+        expect(val1[0]).toBe(1);
+        expect(val1[1]).toBe(2);
+
+        const val2 = await client.invoke("invoke-handler-arr", [5,7]);
+        expect(val2[0]).toBe(5);
+        expect(val2[1]).toBe(7);
     });
 
     it("will return error if no handler exists", async () => {
