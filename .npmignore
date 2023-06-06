@@ -1,6 +1,5 @@
-example-web/
-example-electron/
+.vscode/
+example-*/
 test/
 jasmine*
-README.md
 tsconfig*
