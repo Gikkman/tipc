@@ -12,6 +12,8 @@ TIPC lets you write a contract type, declaring topics and what types should be s
 ## Browser (client)
 `npm install tipc`
 
+Please note that this library will require you to install `ws` if you are using it in a node process.
+
 # Usage
 TIPC leverages [mapped types](https://www.typescriptlang.org/docs/handbook/2/mapped-types.html) to specify type-safe contracts between the server and the client.
 

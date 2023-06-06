@@ -23,7 +23,8 @@
     "compile": "rm -rf dist && npm run compile:cjs && npm run compile:mjs && npm run compile:umd && ./fixup.sh",
     "compile:cjs": "tsc -p config/tsconfig.cjs.json",
     "compile:mjs": "tsc -p config/tsconfig.mjs.json",
-    "compile:umd": "tsc -p config/tsconfig.browser.json"
+    "compile:umd": "tsc -p config/tsconfig.browser.json",
+    "publish": "npm version patch && npm run compile && npm publish"
   },
   "files": [
     "dist",
@@ -33,7 +34,7 @@
     "package.json"
   ],
   "keywords": [],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/jasmine": "^4.0.3",
     "@types/node": "^18.0.6",
@@ -45,14 +46,11 @@
     "jasmine": "^4.2.1",
     "jasmine-spec-reporter": "^7.0.0",
     "ts-node": "^10.9.1",
-    "typescript": "^4.7.4"
+    "typescript": "^4.7.4",
+    "ws": "^8.0.0"
   },
   "peerDependencies": {
     "typescript": ">= 4.7.x",
     "ws": ">=8.0.0"
-  },
-  "optionalDependencies": {
-    "bufferutil": "^4.0.6",
-    "utf-8-validate": "^5.0.9"
   }
 }
