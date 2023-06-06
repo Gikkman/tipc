@@ -1,6 +1,6 @@
 {
   "name": "tipc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "repository": "https://github.com/gikkman/tipc",
   "description": "A wrapper around websockets which allows using a mapped type as a contract. As long as the server and client shares this contract types, neither can send nor receive incorrect typed data.",
   "author": {
