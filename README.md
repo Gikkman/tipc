@@ -60,4 +60,4 @@ When sending a fire-and-forget request with TIPC, listeners _on the same instanc
 Sometimes, you want to add a one-time use listener on a topic. For those cases, use the `setOnceListener` and/or `setOnceHandler`. These will be removed once they've been called once. Remember that a topic can only have one handler, but multiple listeners. 
 
 # License
-TIPC is licensed under the MIT license. Please see the [License file](./LICENSE)
+TIPC is licensed under the Apache License 2.0. Please see the [License file](./LICENSE)

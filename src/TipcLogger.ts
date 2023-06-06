@@ -2,6 +2,10 @@ type LogLevel = "DEBUG"|"INFO"|"WARN"|"ERROR"|"OFF";
 
 type LogSink = (s: string, ...rest: unknown[]) => void;
 
+/**
+ * By deafult, TipcLogger uses loglevel `INFO`, and
+ * uses `console` for output, and no prefix.
+ */
 export type TipcLoggerOptions = {
     messagePrefix?: string,
     logLevel?: LogLevel,
