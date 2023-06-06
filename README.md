@@ -36,7 +36,7 @@ Each TIPC instance (server or client) needs to be given to a namespace. Since se
 
 Each time you call `forContractAndNamespace<Contract>(namespace)`, a new namespaced instance is generated for the given namespace and contract. If you wish for several parts of a code base to use the same namespaced instance, it is recommended you wrap access to TIPC in a singleton.
 
-## request-reply
+## Request-reply
 The above section shows how to use fire-and-forget type requests. TIPC also supports request-reply type requests, for cases when a client wants to send something for processing to the server, and then get a reply. Normally when using a websocket, this can be a tricky ordeal, but TIPC handles it internally and exposes a straight-forward API.
 
 In your contract type, creating a topic that maps to a function:
@@ -56,8 +56,17 @@ It is common to want to listen to messages on the same instance that sends the m
 
 When sending a fire-and-forget request with TIPC, listeners _on the same instance_ will also receive this message. The messages origins are opaque. So you can use TIPC to listen to type-safe events that are fired on the same instance.
 
-## single-use listeners (and handlers)
+## Single-use listeners (and handlers)
 Sometimes, you want to add a one-time use listener on a topic. For those cases, use the `setOnceListener` and/or `setOnceHandler`. These will be removed once they've been called once. Remember that a topic can only have one handler, but multiple listeners. 
+
+# Examples
+You can find two examples in this repository. Run the examples by running either of:
+```
+npm run example:browser
+```
+```
+npm run example:electron
+```
 
 # License
 TIPC is licensed under the Apache License 2.0. Please see the [License file](./LICENSE)
