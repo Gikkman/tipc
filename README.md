@@ -26,10 +26,10 @@ type MathContract = {
 ```
 TIPC will then ensure that you can only send the corresponding types to that the topic:
 
-![Example video using TIPC to send data](./docs/example-send.gif)
+![Example video using TIPC to send data](./docs/example-send.gif?raw=true)
 
 Likewise, if you are listening to messages on a topic, the callback function's arguments will automatically be typed from the contract:
-![Example video using TIPC to receive data](./docs/example-listen.gif)
+![Example video using TIPC to receive data](./docs/example-listen.gif?raw=true)
 
 **It is paramount that all TIPC users share type definitions.** If different users adhere to different contracts, they will likely run into compatibility problems. For TIPC to work best, consider using a [monorepo](https://en.wikipedia.org/wiki/Monorepo), use [npm workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces) or sharing the type definitions through [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
