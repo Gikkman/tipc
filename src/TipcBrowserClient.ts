@@ -36,6 +36,10 @@ export class TipcBrowserClient implements TipcUntypedClient {
         return {address: this.host, port: this.port};
     }
 
+    public isConnected(): boolean {
+        return this.ws?.readyState === WebSocket.OPEN;
+    }
+
     public forContractAndNamespace<T>(namespace: string & (T extends object ? string : never)): TipcNamespaceClient<T> {
         if(this.usedNamespaces.has(namespace)) {
             let msg = `Namespace ${namespace} is already in use for this Tipc instance. `;
@@ -48,6 +52,9 @@ export class TipcBrowserClient implements TipcUntypedClient {
     }
 
     public async connect(): Promise<TipcClient> {
+        if(this.isConnected()) {
+            return this;
+        }
         const url = `ws://${this.host}:${this.port}`;
         this.ws = await this.initWs(url);
         return this;
@@ -135,7 +142,7 @@ export class TipcBrowserClient implements TipcUntypedClient {
             });
             rejSub = this.addOnceListener(namespace, "error-"+message.messageId, (data: any[]) => {
                 reject(data);
-                resSub.unsubscribe();
+                resSub?.unsubscribe();
             });
         });
         this.ws?.send(JSON.stringify(message));

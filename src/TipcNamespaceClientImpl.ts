@@ -35,4 +35,8 @@ export class TipcNamespaceClientImpl<T> implements TipcNamespaceClient<T> {
     >(topic: K, ...args: P): Promise<R> {
         return this.core.invoke(this.namespace, topic, ...args);
     }
+
+    isConnected(): boolean {
+        return this.core.isConnected();
+    }
 }

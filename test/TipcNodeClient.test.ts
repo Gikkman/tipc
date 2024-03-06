@@ -1,7 +1,7 @@
 import { TipcNodeServer } from "../src/TipcNodeServer";
 import { TipcNodeClient } from "../src/TipcNodeClient";
 import { sleep } from "./Helper.test";
-import { Callback, TipcClient, TipcNamespaceClient, TipcServer, TipcNamespaceServer } from "../src/TipcTypes";
+import { Callback, TipcClient, TipcNamespaceClient, TipcServer, TipcNamespaceServer, TipcServerOptions, TipcClientOptions } from "../src/TipcTypes";
 import { TipcLoggerOptions } from "../src/TipcLogger";
 
 type AnyInterface = Record<string,any>
@@ -15,9 +15,13 @@ let m_clientB: TipcNamespaceClient<unknown>|undefined;
 
 const setupServerClient = async <T>(namespaceServer= "default",
     namespaceClientA = "default",
-    namespaceClientB = "default"
+    namespaceClientB = "default",
+    extraServerOptions: Partial<TipcServerOptions> = {},
+    extraClientOptions: Partial<TipcClientOptions> = {},
 ): Promise<[TipcNamespaceServer<T>, TipcNamespaceClient<T>, TipcNamespaceClient<T>]> => {
-    m_server_core = await TipcNodeServer.create({address:"localhost", port: 0, loggerOptions: {logLevel: "OFF"}}).connect();
+    m_server_core = await TipcNodeServer.create({
+        address:"localhost", port: 0, loggerOptions: {logLevel: "OFF"}, ...extraServerOptions,
+    }).connect();
     m_server = m_server_core.forContractAndNamespace<T | AnyInterface>(namespaceServer);
 
     const address = m_server_core.getAddressInfo();
@@ -25,7 +29,9 @@ const setupServerClient = async <T>(namespaceServer= "default",
         throw "Address undefined";
     }
 
-    m_client_core = await TipcNodeClient.create({address: "localhost", port: address.port, loggerOptions: {logLevel: "OFF"}}).connect();
+    m_client_core = await TipcNodeClient.create({
+        address: "localhost", port: address.port, loggerOptions: {logLevel: "OFF"}, ...extraClientOptions,
+    }).connect();
     m_clientA = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientA);
     m_clientB = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientB);
     return [m_server, m_clientA, m_clientB];
@@ -302,5 +308,19 @@ describe("Test TipcNodeClient.forContractAndNamespace", () => {
         core.forContractAndNamespace<AnyInterface>("test");
         expect(calledSignal).toBeTrue();
         await core.shutdown();
+    });
+});
+
+describe("Test TipcNodeClient.isConnected", () => {
+    it("returns true if connected", async () => {
+        const [_, client] = await setupServerClient<CallbackInterface>();
+        expect(client.isConnected()).toBeTrue();
+    });
+
+    it("returns false if not connected", async () => {
+        const [_, client] = await setupServerClient<CallbackInterface>();
+        await m_server_core?.shutdown();
+        await sleep(100);
+        expect(client.isConnected()).toBeFalse();
     });
 });

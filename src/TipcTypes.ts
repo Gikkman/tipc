@@ -61,6 +61,8 @@ export interface TipcNamespaceClient<T> extends TipcCore<T> {
         K extends keyof ExtractFunctions<T>,
         R extends Ret<T,K>
     >(topic: K, ...args: Args<T,K>): Promise<R>;
+
+    isConnected(): boolean;
 }
 
 /**
@@ -85,6 +87,7 @@ export interface TipcServer {
 export interface TipcClient {
     getAddressInfo(): TipcAddressInfo|undefined
     shutdown(): Promise<unknown>,
+    isConnected(): boolean,
     forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcNamespaceClient<T>
 }
 
@@ -140,6 +143,8 @@ export type TipcUntypedClient = {
 
     addListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
     addOnceListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
+
+    isConnected(): boolean,
 }
 
 /**
