@@ -13,7 +13,7 @@ import { Callback,
     TipcNamespaceServer,
     TipcServer,
     TipcServerOptions,
-    TipcFactory } from "./TipcTypes";
+    TipcConnectionManager } from "./TipcTypes";
 
 export class TipcNodeServer implements TipcUntypedServer {
     private wss?: WebSocketServer;
@@ -30,7 +30,7 @@ export class TipcNodeServer implements TipcUntypedServer {
         this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
 
-    public static create(options?: TipcServerOptions): TipcFactory<TipcServer> {
+    public static create(options?: TipcServerOptions): TipcConnectionManager<TipcServer> {
         const server = new TipcNodeServer(options);
         return server;
     }

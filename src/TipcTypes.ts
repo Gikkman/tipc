@@ -68,7 +68,7 @@ export interface TipcNamespaceClient<T> extends TipcCore<T> {
 /**
  * Represents the step between setting all config for a Tipc instance, but before it's been connected.
  */
-export interface TipcFactory<T> {
+export interface TipcConnectionManager<T> {
     connect(): Promise<T>,
 }
 /**
@@ -88,7 +88,8 @@ export interface TipcClient {
     getAddressInfo(): TipcAddressInfo|undefined
     shutdown(): Promise<unknown>,
     isConnected(): boolean,
-    forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcNamespaceClient<T>
+    forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcNamespaceClient<T>,
+    reconnect(): Promise<TipcClient>,
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -137,15 +138,6 @@ export type TipcUntypedServer = {
 
     getAddressInfo(): TipcAddressInfo|undefined
 }
-export type TipcUntypedClient = {
-    send(namespace: string, topic: Topic, ...args: any[]): void,
-    invoke(namespace: string, topic: Topic, ...args: any[]): Promise<any>,
-
-    addListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
-    addOnceListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
-
-    isConnected(): boolean,
-}
 
 /**
  * **Tipc Server Options**
@@ -163,7 +155,7 @@ export type TipcUntypedClient = {
  */
 export type TipcServerOptions = {checkTimeouts?: boolean, loggerOptions?: TipcLoggerOptions} &
 ( {noWsServer: true}
-| {address: string, port: number}
+| {host: string, port: number}
 | {server: HTTPServer | HTTPSServer} )
 
-export type TipcClientOptions = { address: string, port: number, loggerOptions?: TipcLoggerOptions }
+export type TipcClientOptions = { host: string, port: number, onDisconnect?: () => void, loggerOptions?: TipcLoggerOptions }

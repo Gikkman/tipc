@@ -5,7 +5,7 @@ import { sleep } from "./Helper.test";
 type AnyInterface = Record<string, any>
 
 function basicServer() {
-    return TipcNodeServer.create({address:"localhost", port:0, loggerOptions: {logLevel: "OFF"}});
+    return TipcNodeServer.create({host:"localhost", port:0, loggerOptions: {logLevel: "OFF"}});
 }
 
 describe("Test TipcNodeServer.addListener()", () => {
@@ -211,7 +211,7 @@ describe("Test TipcNodeServer.forNamespaceAndContract", () => {
         const noop = () => {};
         const loggerOptions: TipcLoggerOptions = {logLevel: "DEBUG", warn: cb, error: noop, info: noop, debug: noop};
 
-        const server = TipcNodeServer.create({address:"localhost", port:0, loggerOptions});
+        const server = TipcNodeServer.create({host:"localhost", port:0, loggerOptions});
         const core = await server.connect();
         core.forContractAndNamespace<AnyInterface>("test");
         core.forContractAndNamespace<AnyInterface>("test");

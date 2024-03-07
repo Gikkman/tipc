@@ -6,7 +6,7 @@ import { Operations, OtherOperations } from '../EventApi';
  *  Event listeners
  ************************************************************************/
 let ops: TipcNamespaceClient<Operations>, otherOps: TipcNamespaceClient<OtherOperations>;
-const core = TipcBrowserClient.create({address: "localhost", port: 8088});
+const core = TipcBrowserClient.create({host: "localhost", port: 8088});
 core.connect()
     .then(c => {
         ops = c.forContractAndNamespace<Operations>("ops");

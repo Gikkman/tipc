@@ -1,35 +1,35 @@
+import * as crypto from "crypto";
 import { WebSocket } from "ws";
 import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
-import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
-import { randomUUID } from "crypto";
 import { TipcLogger } from "./TipcLogger";
-import {Callback,
-    TipcUntypedClient,
+import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
+import { Callback,
     TipcSubscription,
     TipcNamespaceClient,
     TipcClient,
-    TipcFactory,
+    TipcConnectionManager,
     TipcAddressInfo,
     TipcClientOptions } from "./TipcTypes";
 
-export class TipcNodeClient implements TipcUntypedClient {
-    protected logger: TipcLogger;
-    protected host: string;
-    protected port: number;
+export class TipcNodeClient implements TipcClient {
+    protected readonly logger: TipcLogger;
+    protected readonly host: string;
+    protected readonly port: number;
+    protected readonly tipcListenerComponent: TipcListenerComponent;
+    private readonly usedNamespaces = new Set<string>();
     protected ws?: WebSocket;
-    private usedNamespaces = new Set<string>();
-
-    protected tipcListenerComponent: TipcListenerComponent;
+    private onDisconnectCallback?: Callback;
 
     private constructor(options: TipcClientOptions) {
+        this.host = options.host;
         this.port = options.port;
-        this.host = options.address;
-        this.logger = new TipcLogger({messagePrefix:"[Tipc Client]" ,...options.loggerOptions});
+        this.onDisconnectCallback = options.onDisconnect;
+        this.logger = new TipcLogger({messagePrefix: "[Tipc Client]", ...options.loggerOptions});
         this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
 
-    public static create(options: TipcClientOptions): TipcFactory<TipcClient> {
+    public static create(options: TipcClientOptions): TipcConnectionManager<TipcClient> {
         const instance = new TipcNodeClient(options);
         return instance;
     }
@@ -62,9 +62,14 @@ export class TipcNodeClient implements TipcUntypedClient {
         return this;
     }
 
+    public reconnect(): Promise<TipcClient> {
+        return this.connect();
+    }
+
     public async shutdown(): Promise<void> {
         return new Promise(res => {
             if(this.ws?.readyState === WebSocket.OPEN) {
+                this.onDisconnectCallback = undefined;
                 this.ws.once('close', () => res(undefined));
                 this.ws.close();
             }
@@ -108,12 +113,16 @@ export class TipcNodeClient implements TipcUntypedClient {
         });
         ws.on('close', () => {
             this.logger.info("Websocket connection closed");
+            this.ws = undefined;
             clearTimeout(pingTimeout);
+            if(this.onDisconnectCallback) {
+                this.onDisconnectCallback();
+            }
         });
 
         return new Promise<WebSocket>((resolve) => {
-            this.logger.info("Websocket connection established");
             ws.once('open', () => {
+                this.logger.info("Websocket connection established: %s", url);
                 resolve(ws);
             });
         });
@@ -144,7 +153,7 @@ export class TipcNodeClient implements TipcUntypedClient {
     invoke(namespace: string, topic: string, ...args: any[]): Promise<any> {
         // Replies to an invocation comes on the same namespace with the messageId as topic
         // If the reply is an error, the error listener is "error-"+messageId
-        const message = makeTipcInvokeObject(namespace, topic, randomUUID(), args);
+        const message = makeTipcInvokeObject(namespace, topic, crypto.randomUUID(), args);
         const promise = new Promise<any>((resolve, reject) => {
             let rejSub: TipcSubscription | undefined = undefined;
             const resSub = this.addOnceListener(namespace, message.messageId, (data: any[]) => {

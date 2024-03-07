@@ -20,7 +20,7 @@ const setupServerClient = async <T>(namespaceServer= "default",
     extraClientOptions: Partial<TipcClientOptions> = {},
 ): Promise<[TipcNamespaceServer<T>, TipcNamespaceClient<T>, TipcNamespaceClient<T>]> => {
     m_server_core = await TipcNodeServer.create({
-        address:"localhost", port: 0, loggerOptions: {logLevel: "OFF"}, ...extraServerOptions,
+        host:"localhost", port: 0, loggerOptions: {logLevel: "OFF"}, ...extraServerOptions,
     }).connect();
     m_server = m_server_core.forContractAndNamespace<T | AnyInterface>(namespaceServer);
 
@@ -30,7 +30,7 @@ const setupServerClient = async <T>(namespaceServer= "default",
     }
 
     m_client_core = await TipcNodeClient.create({
-        address: "localhost", port: address.port, loggerOptions: {logLevel: "OFF"}, ...extraClientOptions,
+        host: "localhost", port: address.port, loggerOptions: {logLevel: "OFF"}, ...extraClientOptions,
     }).connect();
     m_clientA = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientA);
     m_clientB = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientB);
@@ -302,7 +302,7 @@ describe("Test TipcNodeClient.forContractAndNamespace", () => {
             throw "Server had no address";
         }
 
-        const client = TipcNodeClient.create({address: "localhost", port: address.port, loggerOptions});
+        const client = TipcNodeClient.create({host: "localhost", port: address.port, loggerOptions});
         const core = await client.connect();
         core.forContractAndNamespace<AnyInterface>("test");
         core.forContractAndNamespace<AnyInterface>("test");
@@ -322,5 +322,97 @@ describe("Test TipcNodeClient.isConnected", () => {
         await m_server_core?.shutdown();
         await sleep(100);
         expect(client.isConnected()).toBeFalse();
+    });
+});
+
+describe("Test TipcNodeClient.onDisconnect", () => {
+    it("calls listener when connection closes", async () => {
+        let called = false;
+        const onDisconnect = () => {
+            called = true;
+        };
+        await setupServerClient<CallbackInterface>("ns", "ns", "", {}, {onDisconnect});
+        await m_server_core?.shutdown();
+        await sleep(5);
+        expect(called).toBeTrue();
+    });
+});
+
+describe("Test TipcNodeClient.reconnect", () => {
+    it("is possible to reconnect in the onDisconnect callback", async () => {
+        let client: TipcClient|undefined = undefined;
+        const onDisconnect = async () => {
+            await sleep(30);
+            client?.reconnect();
+        };
+
+        // Create a server
+        const server1 = await TipcNodeServer.create({ host:"localhost", port: 0, loggerOptions: {logLevel: "OFF"} }).connect();
+        const address = server1.getAddressInfo();
+        if(!address) {
+            throw "Address undefined";
+        }
+        // Make sure the client is connected
+        client = await TipcNodeClient.create({ host: "localhost", port: address.port, onDisconnect, loggerOptions: {logLevel: "OFF"} }).connect();
+        expect(client.isConnected()).toBeTrue();
+
+        // Shut down server 1, and make sure the client is disconnected
+        await server1.shutdown();
+        await sleep(5);
+        expect(client.isConnected()).toBeFalse();
+
+        // Create a new server, with the same port ("it restarting"), and ensure the client can connect again
+        const server2 = await TipcNodeServer.create({ host:"localhost", port: address.port, loggerOptions: {logLevel: "OFF"} }).connect();
+        await sleep(50);
+        expect(client.isConnected()).toBeTrue();
+
+        await client.shutdown();
+        await server2.shutdown();
+    });
+
+    it("keeps keeps listeners through a reconnect", async () => {
+        let client: TipcClient|undefined = undefined;
+        const onDisconnect = async () => {
+            await sleep(30);
+            client?.reconnect();
+        };
+        let timesCalled = 0;
+        const callback = () => {
+            timesCalled++;
+        };
+
+        const server1 = await TipcNodeServer.create({ host:"localhost", port: 0, loggerOptions: {logLevel: "OFF"} }).connect();
+        const address = server1.getAddressInfo();
+        if(!address) {
+            throw "Address undefined";
+        }
+        // Create a client with a listener
+        client = await TipcNodeClient.create({ host: "localhost", port: address.port, onDisconnect, loggerOptions: {logLevel: "OFF"} }).connect();
+        client.forContractAndNamespace<AnyInterface>("ns").addListener("call", callback);
+        expect(client.isConnected()).toBeTrue();
+        expect(timesCalled).toBe(0);
+
+        // Call the listener through server 1
+        server1.forContractAndNamespace<AnyInterface>("ns").send("call");
+        await sleep(5);
+        expect(timesCalled).toBe(1);
+
+        // Shut down server 1, and make sure the client is disconnected
+        await server1.shutdown();
+        await sleep(5);
+        expect(client.isConnected()).toBeFalse();
+
+        // Create a new server, and make sure the client is connected
+        const server2 = await TipcNodeServer.create({ host:"localhost", port: address.port, loggerOptions: {logLevel: "OFF"} }).connect();
+        await sleep(50);
+        expect(client.isConnected()).toBeTrue();
+
+        // Call the same listener through server 2
+        server2.forContractAndNamespace<AnyInterface>("ns").send("call");
+        await sleep(5);
+        expect(timesCalled).toBe(2);
+
+        await client.shutdown();
+        await server2.shutdown();
     });
 });

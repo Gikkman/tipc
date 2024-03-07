@@ -3,31 +3,31 @@ import { TipcListenerComponent } from "./TipcListenerComponent";
 import { TipcLogger } from "./TipcLogger";
 import { TipcNamespaceClientImpl } from "./TipcNamespaceClientImpl";
 import { Callback,
-    TipcUntypedClient,
     TipcSubscription,
     TipcNamespaceClient,
     TipcClient,
-    TipcFactory,
+    TipcConnectionManager,
     TipcAddressInfo,
     TipcClientOptions } from "./TipcTypes";
 
-export class TipcBrowserClient implements TipcUntypedClient {
-    protected host: string;
-    protected port: number;
-    protected logger: TipcLogger;
+export class TipcBrowserClient implements TipcClient {
+    protected readonly logger: TipcLogger;
+    protected readonly host: string;
+    protected readonly port: number;
+    protected readonly tipcListenerComponent: TipcListenerComponent;
+    private readonly usedNamespaces = new Set<string>();
     protected ws?: WebSocket;
-    private usedNamespaces = new Set<string>();
-
-    protected tipcListenerComponent: TipcListenerComponent;
+    private onDisconnectCallback?: Callback;
 
     private constructor(options: TipcClientOptions) {
-        this.host = options.address;
+        this.host = options.host;
         this.port = options.port;
+        this.onDisconnectCallback = options.onDisconnect;
         this.logger = new TipcLogger({messagePrefix: "[Tipc Client]", ...options.loggerOptions});
         this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
 
-    public static create(options: TipcClientOptions): TipcFactory<TipcClient> {
+    public static create(options: TipcClientOptions): TipcConnectionManager<TipcClient> {
         const instance = new TipcBrowserClient(options);
         return instance;
     }
@@ -60,9 +60,14 @@ export class TipcBrowserClient implements TipcUntypedClient {
         return this;
     }
 
+    public reconnect(): Promise<TipcClient> {
+        return this.connect();
+    }
+
     public async shutdown(): Promise<void> {
         return new Promise(res => {
             if(this.ws?.readyState === WebSocket.OPEN) {
+                this.onDisconnectCallback = undefined;
                 this.ws.onclose = () => res(undefined);
                 this.ws.close();
             }
@@ -98,11 +103,15 @@ export class TipcBrowserClient implements TipcUntypedClient {
         });
         ws.addEventListener('close', () => {
             this.logger.info("Websocket connection closed");
+            this.ws = undefined;
+            if(this.onDisconnectCallback) {
+                this.onDisconnectCallback();
+            }
         });
 
         return new Promise<WebSocket>((resolve) => {
-            this.logger.info("Websocket connection established");
             ws.addEventListener('open', () => {
+                this.logger.info("Websocket connection established: %s", url);
                 resolve(ws);
             });
         });

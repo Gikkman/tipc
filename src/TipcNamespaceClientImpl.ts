@@ -1,10 +1,10 @@
-import { TipcUntypedClient, Args, ExtractFunctions, Ret, TipcNamespaceClient, Typings } from "./TipcTypes";
+import { Args, ExtractFunctions, Ret, TipcNamespaceClient, Typings, Topic, Callback, TipcSubscription, TipcClient } from "./TipcTypes";
 
 export class TipcNamespaceClientImpl<T> implements TipcNamespaceClient<T> {
-    private core: TipcUntypedClient;
+    private core: TipcClient & TipcUntypedClient;
     private namespace: string;
 
-    constructor(client: TipcUntypedClient, namespace: string) {
+    constructor(client: TipcClient & TipcUntypedClient, namespace: string) {
         this.core = client;
         this.namespace = namespace;
     }
@@ -39,4 +39,14 @@ export class TipcNamespaceClientImpl<T> implements TipcNamespaceClient<T> {
     isConnected(): boolean {
         return this.core.isConnected();
     }
+}
+
+type TipcUntypedClient = {
+    send(namespace: string, topic: Topic, ...args: any[]): void,
+    invoke(namespace: string, topic: Topic, ...args: any[]): Promise<any>,
+
+    addListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
+    addOnceListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
+
+    isConnected(): boolean,
 }

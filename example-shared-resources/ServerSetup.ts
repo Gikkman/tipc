@@ -2,7 +2,7 @@ import { TipcNodeServer } from "../src/TipcNodeServer";
 import { Operations, OtherOperations } from "./EventApi";
 
 export async function setupWebsocketServer() {
-    return TipcNodeServer.create({address: "localhost", port: 8088})
+    return TipcNodeServer.create({host: "localhost", port: 8088})
         .connect()
         .then(server => {
             const ops = server.forContractAndNamespace<Operations>("ops");
