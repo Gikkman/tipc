@@ -17,7 +17,7 @@ export type TipcLoggerOptions = {
 
 const defaultOptions: Required<TipcLoggerOptions> = {
     messagePrefix: "",
-    logLevel: "INFO",
+    logLevel: "WARN",
     debug: console.log,
     info: console.log,
     warn: console.warn,

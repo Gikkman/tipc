@@ -9,13 +9,12 @@ import { Callback,
     Topic,
     TipcSubscription,
     TipcInvokeObject,
-    TipcUntypedServer,
     TipcNamespaceServer,
     TipcServer,
     TipcServerOptions,
     TipcConnectionManager } from "./TipcTypes";
 
-export class TipcNodeServer implements TipcUntypedServer {
+export class TipcNodeServer implements TipcServer {
     private wss?: WebSocketServer;
     private options: TipcServerOptions;
     private logger: TipcLogger;
@@ -25,7 +24,7 @@ export class TipcNodeServer implements TipcUntypedServer {
     protected invokeListeners: Map<string, WrappedCallback> = new Map();
 
     protected constructor(options?: TipcServerOptions) {
-        this.options = { checkTimeouts: false, ...(options ?? {noWsServer: true}) };
+        this.options = { clientTimeoutMs: 60*1000, ...(options ?? {noWsServer: true}) };
         this.logger = new TipcLogger({messagePrefix: "[Tipc Server]", ...options?.loggerOptions});
         this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
@@ -129,26 +128,28 @@ export class TipcNodeServer implements TipcUntypedServer {
             });
             ws.on("close", () => {
                 this.logger.debug("Client disconnected");
+                clientAlive.delete(ws);
             });
             ws.onerror = (err) => {
                 this.logger.debug("Client error [%s]", err.message);
             };
         });
 
-        const checkTimeouts = this.options.checkTimeouts;
-        const interval = setInterval( () => {
-            if(!checkTimeouts) {
-                return;
-            }
-            wss.clients.forEach(ws => {
-                if( clientAlive.get(ws) === false ) {
-                    this.logger.info(`Terminating client ${ws.url} due to timeout`);
-                    return ws.terminate();
-                }
-                clientAlive.set(ws, false);
-                ws.ping();
-            });
-        }, 30_000);
+        const clientTimeoutMs = this.options.clientTimeoutMs;
+        let interval: NodeJS.Timer;
+        if(clientTimeoutMs && clientTimeoutMs > 1) {
+            interval = setInterval( () => {
+                this.logger.debug("Checking %s clients for timeout", wss.clients.size);
+                wss.clients.forEach(ws => {
+                    if( clientAlive.get(ws) === false ) {
+                        this.logger.info(`Terminating client due to timeout`);
+                        return ws.terminate();
+                    }
+                    clientAlive.set(ws, false);
+                    ws.ping();
+                });
+            }, clientTimeoutMs/2); // Div by 2, because to timeout a client, we need to call this interval func twice
+        }
 
         wss.on("close", () => {
             this.logger.info("Websocket Server closed");

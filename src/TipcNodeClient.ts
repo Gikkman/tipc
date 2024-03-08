@@ -80,19 +80,11 @@ export class TipcNodeClient implements TipcClient {
     }
 
     private initWs(url: string) {
-        let pingTimeout: NodeJS.Timeout;
         const ws = new WebSocket(url);
-
-        function heartbeat() {
-            clearTimeout(pingTimeout);
-            pingTimeout = setTimeout(() => {
-                ws.terminate();
-            }, 45_000);
-        }
-
-        ws.on('open', heartbeat);
-        ws.on('ping', heartbeat);
-        ws.on("message", (data, isBinary) => {
+        ws.on('error', (err) => {
+            this.logger.error('Error: %s', err);
+        });
+        ws.on('message', (data, isBinary) => {
             const msg = (isBinary ? data : data.toString()) as string;
             let obj: any;
             try {
@@ -111,10 +103,9 @@ export class TipcNodeClient implements TipcClient {
                 }
             }
         });
-        ws.on('close', () => {
+        ws.once('close', () => {
             this.logger.info("Websocket connection closed");
             this.ws = undefined;
-            clearTimeout(pingTimeout);
             if(this.onDisconnectCallback) {
                 this.onDisconnectCallback();
             }
@@ -126,6 +117,13 @@ export class TipcNodeClient implements TipcClient {
                 resolve(ws);
             });
         });
+    }
+
+    private __interruptWebsocket() {
+        this.ws?.pause();
+    }
+    private __resumeWebsocket() {
+        this.ws?.resume();
     }
 
     /////////////////////////////////////////////////////////////

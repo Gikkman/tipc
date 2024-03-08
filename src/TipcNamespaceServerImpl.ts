@@ -1,4 +1,4 @@
-import { TipcUntypedServer, Args, ExtractFunctions, Ret, TipcNamespaceServer, Typings } from "./TipcTypes";
+import { Args, ExtractFunctions, Ret, TipcNamespaceServer, Typings, Callback, TipcAddressInfo, TipcSubscription, Topic } from "./TipcTypes";
 
 export class TipcNamespaceServerImpl<T> implements TipcNamespaceServer<T> {
     private core: TipcUntypedServer;
@@ -46,4 +46,16 @@ export class TipcNamespaceServerImpl<T> implements TipcNamespaceServer<T> {
     getAddressInfo() {
         return this.core.getAddressInfo();
     }
+}
+
+export type TipcUntypedServer = {
+    broadcast(namespace: string, topic: Topic, ...args: any[]): void,
+
+    addListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
+    addOnceListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
+
+    addHandler(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
+    addOnceHandler(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
+
+    getAddressInfo(): TipcAddressInfo|undefined
 }

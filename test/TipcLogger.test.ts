@@ -113,7 +113,7 @@ describe("Test TipcLogger", () => {
     it("can stringify various data types", () => {
         let output = "";
         const testCallback = (s: string) => output = s;
-        const instance = new TipcLogger({info: testCallback});
+        const instance = new TipcLogger({info: testCallback, logLevel: "INFO"});
 
         instance.info("%s", [1,2,3]);
         expect(output).toBe("[1,2,3]");

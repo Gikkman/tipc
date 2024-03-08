@@ -127,18 +127,6 @@ export type TipcErrorObject = {
 } & TipcMessageBase;
 export type TipcMessageObject = TipcSendObject | TipcInvokeObject | TipcErrorObject;
 
-export type TipcUntypedServer = {
-    broadcast(namespace: string, topic: Topic, ...args: any[]): void,
-
-    addListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
-    addOnceListener(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
-
-    addHandler(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
-    addOnceHandler(namespace: string, topic: Topic, callback: Callback): TipcSubscription,
-
-    getAddressInfo(): TipcAddressInfo|undefined
-}
-
 /**
  * **Tipc Server Options**
  *
@@ -152,8 +140,11 @@ export type TipcUntypedServer = {
  * When supplying a HTTPServer, Tipc will create a Websocket server from that HTTPServer. The Websocket server
  * will be managed by Tipc, but if the HTTPServer is closed externally, the Websocket server will cease to
  * function.
+ *
+ * If you set `clientTimeoutMs` to 0, the TipcServer won't check clients for disconnects. By default, it will
+ * ping clients every 30 seconds to verify that they are still reachable.
  */
-export type TipcServerOptions = {checkTimeouts?: boolean, loggerOptions?: TipcLoggerOptions} &
+export type TipcServerOptions = {clientTimeoutMs?: number, loggerOptions?: TipcLoggerOptions} &
 ( {noWsServer: true}
 | {host: string, port: number}
 | {server: HTTPServer | HTTPSServer} )
