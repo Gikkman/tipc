@@ -113,6 +113,7 @@ export class TipcNodeServer implements TipcServer {
             clientAlive.set(ws, true);
             ws.on("pong", () => clientAlive.set(ws, true));
             ws.on("message", (data, isBinary) => {
+                clientAlive.set(ws, true);
                 const msg = (isBinary ? data : data.toString()) as string;
                 let obj: any;
                 try {
@@ -135,6 +136,13 @@ export class TipcNodeServer implements TipcServer {
             };
         });
 
+        /**
+         * This timeout function will periodically mark all clients to "not alive", then send a ping
+         * request to the client. A response to the ping (a pong), or any message from the client, will
+         * mark the clientas alive again.
+         * IF the client is still marked as "not alive" the next time the function is called, the
+         * websocket will be terminated and cleaned up
+         */
         const clientTimeoutMs = this.options.clientTimeoutMs;
         let interval: NodeJS.Timer;
         if(clientTimeoutMs && clientTimeoutMs > 1) {
@@ -148,7 +156,7 @@ export class TipcNodeServer implements TipcServer {
                     clientAlive.set(ws, false);
                     ws.ping();
                 });
-            }, clientTimeoutMs/2); // Div by 2, because to timeout a client, we need to call this interval func twice
+            }, clientTimeoutMs);
         }
 
         wss.on("close", () => {

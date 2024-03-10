@@ -1,4 +1,5 @@
 import { TipcLoggerOptions } from "../src/TipcLogger";
+import { TipcNodeClient } from "../src/TipcNodeClient";
 import { TipcNodeServer } from "../src/TipcNodeServer";
 import { sleep } from "./Helper.test";
 
@@ -218,5 +219,29 @@ describe("Test TipcNodeServer.forNamespaceAndContract", () => {
         expect(calledSignal).toBeTrue();
 
         await core.shutdown();
+    });
+});
+
+describe("Test TipcNodeServer clientTimeoutMs", () => {
+    it("will timeout clients", async () => {
+        const server = await TipcNodeServer.create({host:"localhost", port:0, loggerOptions: {logLevel: "OFF"}, clientTimeoutMs: 20}).connect();
+        const client = await TipcNodeClient.create({host:"localhost", port: server.getAddressInfo()?.port as number}).connect();
+        await sleep(70);
+        expect(client.isConnected()).toBeTrue();
+        expect((server as any).wss.clients.size).toBe(1);
+
+        // Block all communication on the client websocket, so the server times out the client
+        (client as any).__interruptWebsocket();
+        await sleep(70);
+        expect((server as any).wss.clients.size).toBe(0);
+        expect(client.isConnected()).toBeTrue();
+
+        // Client should realize it's been disconnected shortly after we re-enable it
+        (client as any).__resumeWebsocket();
+        await sleep(10);
+        expect(client.isConnected()).toBeFalse();
+
+        await client.shutdown();
+        await server.shutdown();
     });
 });

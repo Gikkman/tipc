@@ -416,23 +416,3 @@ describe("Test TipcNodeClient.reconnect", () => {
         await server2.shutdown();
     });
 });
-
-describe("Test TipcNodeClient timeout", () => {
-    it("will timeout clients", async () => {
-        const [server, client] = await setupServerClient<AnyInterface>("ns", "ns", "", {clientTimeoutMs: 50}, {});
-        await sleep(70);
-        expect(client.isConnected()).toBeTrue();
-        expect((server as any).core.wss.clients.size).toBe(1);
-
-        // Block all communication on the client websocket, so the server times out the client
-        (client as any).core.__interruptWebsocket();
-        await sleep(70);
-        expect((server as any).core.wss.clients.size).toBe(0);
-        expect(client.isConnected()).toBeTrue();
-
-        // Client should realize it's been disconnected shortly after we re-enable it
-        (client as any).core.__resumeWebsocket();
-        await sleep(10);
-        expect(client.isConnected()).toBeFalse();
-    });
-});
