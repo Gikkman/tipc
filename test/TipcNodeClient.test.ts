@@ -1,7 +1,7 @@
-import { TipcNodeServer } from "../src/TipcNodeServer";
+import { TipcNodeServer, TipcServerOptions } from "../src/TipcNodeServer";
 import { TipcNodeClient } from "../src/TipcNodeClient";
 import { sleep } from "./Helper.test";
-import { Callback, TipcClient, TipcNamespaceClient, TipcServer, TipcNamespaceServer, TipcServerOptions, TipcClientOptions } from "../src/TipcTypes";
+import { Callback, TipcClient, TipcNamespaceClient, TipcServer, TipcNamespaceServer, TipcClientOptions } from "../src/TipcTypes";
 import { TipcLoggerOptions } from "../src/TipcLogger";
 
 type AnyInterface = Record<string,any>

@@ -11,8 +11,11 @@ import { Callback,
     TipcInvokeObject,
     TipcNamespaceServer,
     TipcServer,
-    TipcServerOptions,
     TipcConnectionManager } from "./TipcTypes";
+import { TipcServerOptions } from "./TipcTypesNodeOnly";
+import { nextTick } from "process";
+
+export type { TipcServerOptions } from "./TipcTypesNodeOnly";
 
 export class TipcNodeServer implements TipcServer {
     private wss?: WebSocketServer;
@@ -108,8 +111,7 @@ export class TipcNodeServer implements TipcServer {
 
         const clientAlive: Map<WebSocket, boolean> = new Map();
         const wss = new WebSocketServer(this.options);
-        wss.on("connection", ws => {
-            this.logger.debug("New client connected");
+        wss.on("connection", (ws, req) => {
             clientAlive.set(ws, true);
             ws.on("pong", () => clientAlive.set(ws, true));
             ws.on("message", (data, isBinary) => {
@@ -134,6 +136,11 @@ export class TipcNodeServer implements TipcServer {
             ws.onerror = (err) => {
                 this.logger.debug("Client error [%s]", err.message);
             };
+
+            const callback = this.options.onNewConnection;
+            if(callback) {
+                nextTick(() => callback(ws, req));
+            }
         });
 
         /**

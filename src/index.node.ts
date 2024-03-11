@@ -1,4 +1,4 @@
 export { TipcNodeClient } from "./TipcNodeClient";
-export { TipcNodeServer } from "./TipcNodeServer";
+export { TipcNodeServer, TipcServerOptions } from "./TipcNodeServer";
 export { TipcLoggerOptions } from './TipcLogger';
-export { TipcServer, TipcClient, TipcNamespaceServer, TipcNamespaceClient, TipcServerOptions, TipcSubscription } from './TipcTypes';
+export { TipcConnectionManager, TipcServer, TipcClient, TipcNamespaceServer, TipcNamespaceClient, TipcSubscription, TipcClientOptions } from './TipcTypes';

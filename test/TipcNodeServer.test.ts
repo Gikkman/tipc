@@ -1,6 +1,8 @@
+import { WebSocket } from "ws";
 import { TipcLoggerOptions } from "../src/TipcLogger";
 import { TipcNodeClient } from "../src/TipcNodeClient";
 import { TipcNodeServer } from "../src/TipcNodeServer";
+import { TipcClient, TipcServer } from "../src/TipcTypes";
 import { sleep } from "./Helper.test";
 
 type AnyInterface = Record<string, any>
@@ -243,5 +245,90 @@ describe("Test TipcNodeServer clientTimeoutMs", () => {
 
         await client.shutdown();
         await server.shutdown();
+    });
+});
+
+describe("Test TipcNodeServer constructor params", () => {
+    it("will accept client connecting on corrent path", async () => {
+        let server: TipcServer|undefined = undefined;
+        let client: TipcClient|undefined = undefined;
+        try {
+            server = await TipcNodeServer.create({host:"localhost", port:0, path:"/here", loggerOptions: {logLevel: "OFF"}}).connect();
+            const port = server.getAddressInfo()?.port ?? -1;
+            client = await TipcNodeClient.create({host:"localhost", port, path:"/here", loggerOptions: {logLevel: "OFF"}}).connect();
+            await sleep(10);
+            expect(client.isConnected()).toBeTrue();
+        }
+        catch (ex) {
+            fail(ex);
+        }
+        finally {
+            await server?.shutdown();
+            await client?.shutdown();
+        }
+    });
+    it("will not accept client connecting on wrong path", async () => {
+        let server: TipcServer|undefined = undefined;
+        let client: TipcClient|undefined = undefined;
+        try {
+            server = await TipcNodeServer.create({host:"localhost", port:0, path:"/here", loggerOptions: {logLevel: "OFF"}}).connect();
+            const port = server.getAddressInfo()?.port ?? -1;
+            client = await TipcNodeClient.create({host:"localhost", port, path:"/there", loggerOptions: {logLevel: "OFF"}}).connect();
+            fail("Connecting client should have thrown an exception");
+        }
+        catch (ex) {
+            expect(ex).toBeTruthy();
+        }
+        finally {
+            await server?.shutdown();
+            await client?.shutdown();
+        }
+    });
+    it("is calls onNewConnection callback", async () => {
+        let server: TipcServer|undefined = undefined;
+        let client1: TipcClient|undefined = undefined;
+        let client2: TipcClient|undefined = undefined;
+        let calledCount = 0;
+        const callback = () => calledCount++;
+        try {
+            server = await TipcNodeServer.create({host:"localhost", port:0, onNewConnection: callback, loggerOptions: {logLevel: "OFF"}}).connect();
+            const port = server.getAddressInfo()?.port ?? -1;
+
+            client1 = await TipcNodeClient.create({host:"localhost", port, loggerOptions: {logLevel: "OFF"}}).connect();
+            await sleep(5);
+            expect(calledCount).toBe(1);
+
+            client2 = await TipcNodeClient.create({host:"localhost", port, loggerOptions: {logLevel: "OFF"}}).connect();
+            await sleep(5);
+            expect(calledCount).toBe(2);
+        }
+        catch (ex) {
+            fail(ex);
+        }
+        finally {
+            await server?.shutdown();
+            await client1?.shutdown();
+            await client2?.shutdown();
+        }
+    });
+    it("is possible to terminate a websocket in onNewConnection callback", async () => {
+        let server: TipcServer|undefined = undefined;
+        let client: TipcClient|undefined = undefined;
+        const connectCallback = (ws: WebSocket) => ws.close();
+        try {
+            server = await TipcNodeServer.create({host:"localhost", port:0, onNewConnection: connectCallback, loggerOptions: {logLevel: "OFF"}}).connect();
+            const port = server.getAddressInfo()?.port ?? -1;
+
+            client = await TipcNodeClient.create({host:"localhost", port, loggerOptions: {logLevel: "OFF"}}).connect();
+            await sleep(5);
+            expect(client.isConnected()).toBeFalse();
+        }
+        catch (ex) {
+            fail(ex);
+        }
+        finally {
+            await server?.shutdown();
+            await client?.shutdown();
+        }
     });
 });

@@ -1,3 +1,3 @@
 export { TipcBrowserClient } from './TipcBrowserClient';
-export { TipcClient, TipcNamespaceClient, TipcSubscription } from './TipcTypes';
+export { TipcConnectionManager, TipcClient, TipcNamespaceClient, TipcSubscription, TipcClientOptions } from './TipcTypes';
 export { TipcLoggerOptions } from './TipcLogger';

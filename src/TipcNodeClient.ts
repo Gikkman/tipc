@@ -16,6 +16,8 @@ export class TipcNodeClient implements TipcClient {
     protected readonly logger: TipcLogger;
     protected readonly host: string;
     protected readonly port: number;
+    protected readonly path: string;
+    protected readonly protocol: string;
     protected readonly tipcListenerComponent: TipcListenerComponent;
     private readonly usedNamespaces = new Set<string>();
     protected ws?: WebSocket;
@@ -24,6 +26,8 @@ export class TipcNodeClient implements TipcClient {
     private constructor(options: TipcClientOptions) {
         this.host = options.host;
         this.port = options.port;
+        this.path = options.path ?? "";
+        this.protocol = options.protocol ?? "ws";
         this.onDisconnectCallback = options.onDisconnect;
         this.logger = new TipcLogger({messagePrefix: "[Tipc Client]", ...options.loggerOptions});
         this.tipcListenerComponent = new TipcListenerComponent(this.logger);
@@ -57,7 +61,7 @@ export class TipcNodeClient implements TipcClient {
         if(this.isConnected()) {
             return this;
         }
-        const url = `ws://${this.host}:${this.port}`;
+        const url = `${this.protocol}://${this.host}:${this.port}${this.path}`;
         this.ws = await this.initWs(url);
         return this;
     }
@@ -82,7 +86,7 @@ export class TipcNodeClient implements TipcClient {
     private initWs(url: string) {
         const ws = new WebSocket(url);
         ws.on('error', (err) => {
-            this.logger.error('Error: %s', err);
+            this.logger.error('Error: %s', err.message);
         });
         ws.on('message', (data, isBinary) => {
             const msg = (isBinary ? data : data.toString()) as string;
@@ -111,8 +115,13 @@ export class TipcNodeClient implements TipcClient {
             }
         });
 
-        return new Promise<WebSocket>((resolve) => {
+        return new Promise<WebSocket>((resolve, reject) => {
+            const onError = (err: Error) => {
+                reject(err);
+            };
+            ws.once('error', onError);
             ws.once('open', () => {
+                ws.off('error', onError);
                 this.logger.info("Websocket connection established: %s", url);
                 resolve(ws);
             });
