@@ -83,6 +83,8 @@ export class TipcBrowserClient implements TipcClient {
 
     private initWs(url: string) {
         const ws = new WebSocket(url);
+        let hasBeenConnected = false;
+
         ws.addEventListener('error', (ev) => {
             this.logger.error('Error: %s', ev);
         });
@@ -108,7 +110,9 @@ export class TipcBrowserClient implements TipcClient {
         ws.addEventListener('close', () => {
             this.logger.info("Websocket connection closed");
             this.ws = undefined;
-            if(this.onDisconnectCallback) {
+            // The 'close' event is emitted even if the connect attempt fails, use 'hasBeenOpen'
+            // to ensure we only call the "onDisconnect" callback if we've ever been connected
+            if(hasBeenConnected && this.onDisconnectCallback) {
                 this.onDisconnectCallback();
             }
         });
@@ -120,6 +124,7 @@ export class TipcBrowserClient implements TipcClient {
             ws.addEventListener('error', onError);
             ws.addEventListener('open', () => {
                 ws.removeEventListener('error', onError);
+                hasBeenConnected = true;
                 this.logger.info("Websocket connection established: %s", url);
                 resolve(ws);
             });

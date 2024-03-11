@@ -370,6 +370,55 @@ describe("Test TipcNodeClient.reconnect", () => {
         await server2.shutdown();
     });
 
+    it("handled multiple reconnect attempts", async () => {
+        /**
+         * There was a bug in the client where it always attached listeners even if a reconnect attempt failed. This lead to it
+         * having several listeners for the 'message' event once it manages to reconnect
+         */
+        let client: TipcClient|undefined = undefined;
+        let callCounter = 0;
+        const onDisconnect = async () => {
+            for(let i = 0; i < 100; i++) {
+                try {
+                    await sleep(10);
+                    await client?.reconnect();
+                    return;
+                }
+                catch {
+                    //reconnect failed, noop in this test, just try again
+                }
+            }
+        };
+
+        // Create a server
+        const server1 = await TipcNodeServer.create({ host:"localhost", port: 0, loggerOptions: {logLevel: "OFF"} }).connect();
+        const port = server1.getAddressInfo()?.port ?? -1;
+        // Make sure the client is connected
+        client = await TipcNodeClient.create({ host: "localhost", port, onDisconnect, loggerOptions: {logLevel: "OFF"} }).connect();
+        expect(client.isConnected()).toBeTrue();
+
+        const clientNs = client.forContractAndNamespace<AnyInterface>("ns");
+        clientNs.addListener("topic", () => callCounter++);
+
+        // Shut down server 1
+        await server1.shutdown();
+        await sleep(100);
+        expect(client.isConnected()).toBeFalse();
+
+        // Create a new server, with the same port ("it restarting"), and ensure the client connects again
+        const server2 = await TipcNodeServer.create({ host:"localhost", port, loggerOptions: {logLevel: "OFF"} }).connect();
+        await sleep(50);
+        expect(client.isConnected()).toBeTrue();
+
+        // Send a message to the client, to ensure that there isn't multiple listeners attached to it
+        server2.forContractAndNamespace<AnyInterface>("ns").send("topic");
+        await sleep(50);
+        expect(callCounter).toBe(1);
+
+        await client.shutdown();
+        await server2.shutdown();
+    });
+
     it("keeps keeps listeners through a reconnect", async () => {
         let client: TipcClient|undefined = undefined;
         const onDisconnect = async () => {
