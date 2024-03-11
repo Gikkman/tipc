@@ -1,7 +1,10 @@
 {
   "name": "tipc",
   "version": "2.0.2",
-  "repository": "github:gikkman/tipc",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gikkman/tipc.git"
+  },
   "homepage": "https://github.com/gikkman/tipc",
   "bugs": "https://github.com/gikkman/tipc/issues",
   "description": "A wrapper around websockets which allows using a mapped type as a contract. As long as the server and client shares this contract types, neither can send nor receive incorrect typed data.",
