@@ -29,7 +29,7 @@
     "compile:cjs": "tsc -p config/tsconfig.cjs.json",
     "compile:mjs": "tsc -p config/tsconfig.mjs.json",
     "compile:umd": "tsc -p config/tsconfig.browser.json",
-    "prepublish": "npm run compile"
+    "prepublishOnly": "npm run compile"
   },
   "files": [
     "dist",
