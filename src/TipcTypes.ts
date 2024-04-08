@@ -19,7 +19,6 @@ type Funcify<T> = {
 export type Args<T, K extends keyof T> = T[K] extends (...args: infer A) => any ? A : never;
 export type Ret<T, K extends keyof T> = T[K] extends (...args: any) => infer U ? U : never;
 export type Typings<T, K extends keyof T, F extends Funcify<T> = Funcify<T>> = Args<F, K>;
-
 /////////////////////////////////////////////////////////////////////////////
 // Interface types
 /////////////////////////////////////////////////////////////////////////////
@@ -76,20 +75,26 @@ export interface TipcConnectionManager<T> {
 export interface TipcServer {
     getAddressInfo(): TipcAddressInfo|undefined
     shutdown(): Promise<unknown>,
+    isOpen(): boolean,
     forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcNamespaceServer<T>
 }
 /**
- * Represents an established TipcClient connection. To be able to add/call listeners, you need to create a namespaced instance, using the
+ * A TipcClient connection. To be able to add/call listeners, you need to create a namespaced instance, using the
  * `forContractAndNamespace` method.
  */
 export interface TipcClient {
-    getAddressInfo(): TipcAddressInfo|undefined
+    /** Get the URL that the underlying Websocket references */
+    getUrl(): string,
+    /** Closes the underlying Websocket (without calling onDisconnect callbacks) */
     shutdown(): Promise<unknown>,
     isConnected(): boolean,
+    /** Creates a namespaced TipcClient, on which you can attach topic listeners */
     forContractAndNamespace<T = "Please provide a mapping type">(namespace: string & (T extends object ? string : never)): TipcNamespaceClient<T>,
+    /** If the underlying Websocket is disconnected, create a new Websocket and go through the connect process */
     reconnect(): Promise<TipcClient>,
+    /** @deprecate Use getUrl instead */
+    getAddressInfo(): TipcAddressInfo|undefined
 }
-
 /////////////////////////////////////////////////////////////////////////////
 // Support types
 /////////////////////////////////////////////////////////////////////////////
@@ -125,11 +130,16 @@ export type TipcErrorObject = {
 } & TipcMessageBase;
 export type TipcMessageObject = TipcSendObject | TipcInvokeObject | TipcErrorObject;
 
-export type TipcClientOptions = {
+export type TipcConnectionDetails = {
+    url: string
+} | {
     host: string,
     port: number,
     path?: string,
-    protocol?: "ws"|"wss",
+    protocol?: string,
+}
+
+export type TipcClientOptions = {
     onDisconnect?: () => void,
     loggerOptions?: TipcLoggerOptions
 }

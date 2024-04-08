@@ -2,6 +2,7 @@ import {Server as HTTPServer, IncomingMessage} from 'node:http';
 import {Server as HTTPSServer} from 'node:http';
 import { TipcLoggerOptions } from './TipcLogger';
 import WebSocket from 'ws';
+import { TipcNodeClient } from './TipcNodeClient';
 
 /**
  * --Tipc Server Options--
@@ -23,6 +24,7 @@ import WebSocket from 'ws';
 export type TipcServerOptions = {
     clientTimeoutMs?: number,
     onNewConnection?: (ws: WebSocket, request: IncomingMessage) => any,
+    onClientConnect?: (client: TipcNodeClient, connectUrl: URL, connectRequest: IncomingMessage, ) => unknown,
     loggerOptions?: TipcLoggerOptions
 }
 &

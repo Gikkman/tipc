@@ -1,15 +1,36 @@
-import { WebSocket } from "ws";
+import { createServer } from "http";
 import { TipcLoggerOptions } from "../src/TipcLogger";
 import { TipcNodeClient } from "../src/TipcNodeClient";
 import { TipcNodeServer } from "../src/TipcNodeServer";
 import { TipcClient, TipcServer } from "../src/TipcTypes";
-import { sleep } from "./Helper.test";
+import { setupServerClient, sleep } from "./Helper.test";
 
 type AnyInterface = Record<string, any>
 
 function basicServer() {
     return TipcNodeServer.create({host:"localhost", port:0, loggerOptions: {logLevel: "OFF"}});
 }
+
+describe("Test TipcNodeServer.shutdown", () => {
+    it("closes when using internal http server", async () => {
+        const core = await basicServer().connect();
+        expect(core.isOpen()).toBeTrue();
+        await core.shutdown();
+        expect(core.isOpen()).toBeFalse();
+    });
+    it("closes when using external server", async () => {
+        const server = createServer();
+        server.listen(0);
+        await sleep(5);
+        const core = await TipcNodeServer.create({server, loggerOptions: {logLevel: "OFF"}}).connect();
+        expect(core.isOpen()).toBeTrue();
+
+        server.close();
+        await sleep(5);
+        expect(core.isOpen()).toBeFalse();
+        await core.shutdown(); // Cleanup the WSS instance
+    });
+});
 
 describe("Test TipcNodeServer.addListener()", () => {
     it("will call server-side event listener in same namespace", async () => {
@@ -249,24 +270,12 @@ describe("Test TipcNodeServer clientTimeoutMs", () => {
 });
 
 describe("Test TipcNodeServer constructor params", () => {
-    it("will accept client connecting on corrent path", async () => {
-        let server: TipcServer|undefined = undefined;
-        let client: TipcClient|undefined = undefined;
-        try {
-            server = await TipcNodeServer.create({host:"localhost", port:0, path:"/here", loggerOptions: {logLevel: "OFF"}}).connect();
-            const port = server.getAddressInfo()?.port ?? -1;
-            client = await TipcNodeClient.create({host:"localhost", port, path:"/here", loggerOptions: {logLevel: "OFF"}}).connect();
-            await sleep(10);
-            expect(client.isConnected()).toBeTrue();
-        }
-        catch (ex) {
-            fail(ex);
-        }
-        finally {
-            await server?.shutdown();
-            await client?.shutdown();
-        }
+    it("will accept client connecting on correct path", async () => {
+        const [_, client] = await setupServerClient("ns", "ns", "ns", {path: "/here"}, {path: "/here"});
+        await sleep(10);
+        expect(client.isConnected()).toBeTrue();
     });
+
     it("will not accept client connecting on wrong path", async () => {
         let server: TipcServer|undefined = undefined;
         let client: TipcClient|undefined = undefined;
@@ -284,6 +293,7 @@ describe("Test TipcNodeServer constructor params", () => {
             await client?.shutdown();
         }
     });
+
     it("is calls onNewConnection callback", async () => {
         let server: TipcServer|undefined = undefined;
         let client1: TipcClient|undefined = undefined;
@@ -311,24 +321,41 @@ describe("Test TipcNodeServer constructor params", () => {
             await client2?.shutdown();
         }
     });
-    it("is possible to terminate a websocket in onNewConnection callback", async () => {
+
+    it("is possible to terminate a websocket in onClientConnect callback", async () => {
+        const connectCallback = (ws: TipcNodeClient) => ws.shutdown();
+        const [_, client] = await setupServerClient("ns", "ns", "ns", {onClientConnect: connectCallback}, {});
+        await sleep(10);
+        expect(client.isConnected()).toBeFalse();
+    });
+
+    it("is possible to check query params in onClientConnect callback", async () => {
         let server: TipcServer|undefined = undefined;
-        let client: TipcClient|undefined = undefined;
-        const connectCallback = (ws: WebSocket) => ws.close();
+        let clientA: TipcClient|undefined = undefined;
+        let clientB: TipcClient|undefined = undefined;
+        const connectCallback = (ws: TipcNodeClient, url: URL) => {
+            if(url.searchParams.get("foo") !== "bar") {
+                ws.shutdown();
+            }
+        };
         try {
-            server = await TipcNodeServer.create({host:"localhost", port:0, onNewConnection: connectCallback, loggerOptions: {logLevel: "OFF"}}).connect();
+            server = await TipcNodeServer.create({host:"localhost", port:0, path: "/hello",
+                onClientConnect: connectCallback, loggerOptions: {logLevel: "OFF"}}).connect();
             const port = server.getAddressInfo()?.port ?? -1;
 
-            client = await TipcNodeClient.create({host:"localhost", port, loggerOptions: {logLevel: "OFF"}}).connect();
+            clientA = await TipcNodeClient.create({url:`ws://localhost:${port}/hello?foo=baz`, loggerOptions: {logLevel: "OFF"}}).connect();
+            clientB = await TipcNodeClient.create({url:`ws://localhost:${port}/hello?foo=bar&baz=foz`, loggerOptions: {logLevel: "OFF"}}).connect();
             await sleep(5);
-            expect(client.isConnected()).toBeFalse();
+            expect(clientA.isConnected()).toBeFalse();
+            expect(clientB.isConnected()).toBeTrue();
         }
         catch (ex) {
             fail(ex);
         }
         finally {
             await server?.shutdown();
-            await client?.shutdown();
+            await clientA?.shutdown();
+            await clientB?.shutdown();
         }
     });
 });
