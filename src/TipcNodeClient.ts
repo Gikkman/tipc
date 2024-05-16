@@ -10,36 +10,57 @@ import { Callback,
     TipcClient,
     TipcConnectionManager,
     TipcAddressInfo,
+    TipcConnectionDetails,
     TipcClientOptions } from "./TipcTypes";
 
 export class TipcNodeClient implements TipcClient {
     protected readonly logger: TipcLogger;
-    protected readonly host: string;
-    protected readonly port: number;
-    protected readonly path: string;
-    protected readonly protocol: string;
     protected readonly tipcListenerComponent: TipcListenerComponent;
+    protected readonly url: string;
     private readonly usedNamespaces = new Set<string>();
     protected ws?: WebSocket;
     private onDisconnectCallback?: Callback;
 
-    private constructor(options: TipcClientOptions) {
-        this.host = options.host;
-        this.port = options.port;
-        this.path = options.path ?? "";
-        this.protocol = options.protocol ?? "ws";
+    private constructor(options: TipcConnectionDetails&TipcClientOptions) {
+        if("url" in options) {
+            this.url = options.url;
+        }
+        else {
+            this.url = `${options.protocol??"ws"}://${options.host}:${options.port}${options.path??""}`;
+        }
         this.onDisconnectCallback = options.onDisconnect;
         this.logger = new TipcLogger({messagePrefix: "[Tipc Client]", ...options.loggerOptions});
         this.tipcListenerComponent = new TipcListenerComponent(this.logger);
     }
 
-    public static create(options: TipcClientOptions): TipcConnectionManager<TipcClient> {
+    public static create(options: TipcConnectionDetails&TipcClientOptions): TipcConnectionManager<TipcClient> {
         const instance = new TipcNodeClient(options);
         return instance;
     }
 
-    public getAddressInfo(): TipcAddressInfo {
-        return {address: this.host, port: this.port};
+    public static from(websocket: WebSocket, options?: TipcClientOptions) {
+        const instance = new TipcNodeClient({url: websocket.url, ...options});
+        instance.ws = websocket;
+        instance.initWs(websocket);
+        return instance;
+    }
+
+    public getAddressInfo(): TipcAddressInfo | undefined {
+        const url = this.getUrl();
+        if(!url) {
+            return;
+        }
+        try {
+            const parsed = new URL(url);
+            return {address: parsed.hostname, port: parseInt(parsed.port)};
+        }
+        catch {
+            return undefined;
+        }
+    }
+
+    public getUrl(): string {
+        return this.url;
     }
 
     public isConnected(): boolean {
@@ -61,8 +82,7 @@ export class TipcNodeClient implements TipcClient {
         if(this.isConnected()) {
             return this;
         }
-        const url = `${this.protocol}://${this.host}:${this.port}${this.path}`;
-        this.ws = await this.initWs(url);
+        this.ws = await this.initWs(this.url);
         return this;
     }
 
@@ -83,9 +103,11 @@ export class TipcNodeClient implements TipcClient {
         });
     }
 
-    private initWs(url: string) {
-        const ws = new WebSocket(url);
-        let hasBeenConnected = false;
+    private initWs(urlOrWebsocket: string|WebSocket) {
+        const ws = typeof urlOrWebsocket === "string"
+            ? new WebSocket(urlOrWebsocket, {perMessageDeflate: false})
+            : urlOrWebsocket;
+        let hasBeenConnected = ws.readyState === WebSocket.OPEN;
 
         ws.on('error', (err) => {
             this.logger.error('Error: %s', err.message);
@@ -120,16 +142,21 @@ export class TipcNodeClient implements TipcClient {
         });
 
         return new Promise<WebSocket>((resolve, reject) => {
-            const onError = (err: Error) => {
-                reject(err);
-            };
-            ws.on('error', onError);
-            ws.on('open', () => {
-                ws.off('error', onError);
-                hasBeenConnected = true;
-                this.logger.info("Websocket connection established: %s", url);
+            if(ws.readyState === WebSocket.OPEN) {
                 resolve(ws);
-            });
+            }
+            else {
+                const onError = (err: Error) => {
+                    reject(err);
+                };
+                ws.on('error', onError);
+                ws.on('open', () => {
+                    ws.off('error', onError);
+                    hasBeenConnected = true;
+                    this.logger.info("Websocket connection established: %s", urlOrWebsocket);
+                    resolve(ws);
+                });
+            }
         });
     }
 

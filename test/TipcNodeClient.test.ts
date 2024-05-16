@@ -1,51 +1,9 @@
-import { TipcNodeServer, TipcServerOptions } from "../src/TipcNodeServer";
+import { TipcNodeServer } from "../src/TipcNodeServer";
 import { TipcNodeClient } from "../src/TipcNodeClient";
-import { sleep } from "./Helper.test";
-import { Callback, TipcClient, TipcNamespaceClient, TipcServer, TipcNamespaceServer, TipcClientOptions } from "../src/TipcTypes";
+import { AnyInterface, CallbackInterface, getTestServerCore, setupServerClient, sleep } from "./Helper.test";
+import { TipcClient } from "../src/TipcTypes";
 import { TipcLoggerOptions } from "../src/TipcLogger";
-
-type AnyInterface = Record<string,any>
-type CallbackInterface = Record<string,Callback>
-
-let m_server_core: TipcServer|undefined;
-let m_client_core: TipcClient|undefined;
-let m_server: TipcNamespaceServer<unknown>|undefined;
-let m_clientA: TipcNamespaceClient<unknown>|undefined;
-let m_clientB: TipcNamespaceClient<unknown>|undefined;
-
-const setupServerClient = async <T>(namespaceServer= "default",
-    namespaceClientA = "default",
-    namespaceClientB = "default",
-    extraServerOptions: Partial<TipcServerOptions> = {},
-    extraClientOptions: Partial<TipcClientOptions> = {},
-): Promise<[TipcNamespaceServer<T>, TipcNamespaceClient<T>, TipcNamespaceClient<T>]> => {
-    m_server_core = await TipcNodeServer.create({
-        host:"localhost", port: 0, loggerOptions: {logLevel: "OFF"}, ...extraServerOptions,
-    }).connect();
-    m_server = m_server_core.forContractAndNamespace<T | AnyInterface>(namespaceServer);
-
-    const address = m_server_core.getAddressInfo();
-    if(!address) {
-        throw "Address undefined";
-    }
-
-    m_client_core = await TipcNodeClient.create({
-        host: "localhost", port: address.port, loggerOptions: {logLevel: "OFF"}, ...extraClientOptions,
-    }).connect();
-    m_clientA = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientA);
-    m_clientB = m_client_core.forContractAndNamespace<T | AnyInterface>(namespaceClientB);
-    return [m_server, m_clientA, m_clientB];
-};
-
-afterEach(async () => {
-    await m_server_core?.shutdown();
-    await m_client_core?.shutdown();
-    m_server_core = undefined;
-    m_client_core = undefined;
-    m_server = undefined;
-    m_clientA = undefined;
-    m_clientB = undefined;
-}, 10);
+import { WebSocket } from "ws";
 
 describe("Test TipcNodeClient.addListener()", () => {
     it("will call client-side event listener in same namespace", async () => {
@@ -319,7 +277,7 @@ describe("Test TipcNodeClient.isConnected", () => {
 
     it("returns false if not connected", async () => {
         const [_, client] = await setupServerClient<CallbackInterface>();
-        await m_server_core?.shutdown();
+        await getTestServerCore()?.shutdown();
         await sleep(100);
         expect(client.isConnected()).toBeFalse();
     });
@@ -332,7 +290,7 @@ describe("Test TipcNodeClient.onDisconnect", () => {
             called = true;
         };
         await setupServerClient<CallbackInterface>("ns", "ns", "", {}, {onDisconnect});
-        await m_server_core?.shutdown();
+        await getTestServerCore()?.shutdown();
         await sleep(5);
         expect(called).toBeTrue();
     });
@@ -463,5 +421,35 @@ describe("Test TipcNodeClient.reconnect", () => {
 
         await client.shutdown();
         await server2.shutdown();
+    });
+});
+
+describe("Test TipcNodeClient.from", () => {
+    it("will see that the external websocket is connected/disconnected", async () => {
+        const [server] = await setupServerClient<AnyInterface>("ns");
+        const ws = new WebSocket("ws://localhost:" + server.getAddressInfo()?.port);
+        await sleep(5);
+        expect(ws.readyState).toBe(WebSocket.OPEN);
+        const client = TipcNodeClient.from(ws).forContractAndNamespace<AnyInterface>("ns");
+        expect(client.isConnected()).toBeTrue();
+        ws.close();
+        await sleep(5);
+        expect(client.isConnected()).toBeFalse();
+    });
+
+    it("will attach listeners to external websocket", async () => {
+        const [server] = await setupServerClient<AnyInterface>("ns");
+        const ws = new WebSocket("ws://localhost:" + server.getAddressInfo()?.port);
+        await sleep(5);
+        expect(ws.readyState).toBe(WebSocket.OPEN);
+
+        const client = TipcNodeClient.from(ws).forContractAndNamespace<AnyInterface>("ns");
+        let counter = 0;
+        client.addListener("topic", () => counter++);
+        server.send("topic");
+        await sleep(5);
+        expect(counter).toBe(1);
+
+        ws.close();
     });
 });

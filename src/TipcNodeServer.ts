@@ -1,3 +1,5 @@
+import { nextTick } from "node:process";
+import { createServer, Server } from "node:http";
 import { WebSocketServer, WebSocket, AddressInfo } from "ws";
 import { makeKey, makeTipcErrorObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
@@ -13,12 +15,13 @@ import { Callback,
     TipcServer,
     TipcConnectionManager } from "./TipcTypes";
 import { TipcServerOptions } from "./TipcTypesNodeOnly";
-import { nextTick } from "process";
+import { TipcNodeClient } from "./TipcNodeClient";
 
 export type { TipcServerOptions } from "./TipcTypesNodeOnly";
 
 export class TipcNodeServer implements TipcServer {
     private wss?: WebSocketServer;
+    private server?: Server;
     private options: TipcServerOptions;
     private logger: TipcLogger;
     private usedNamespaces = new Set<string>();
@@ -38,7 +41,7 @@ export class TipcNodeServer implements TipcServer {
     }
 
     public getAddressInfo() {
-        const address = this.wss?.address();
+        const address = this.server?.address();
         if(address) {
             return address as AddressInfo;
         }
@@ -56,17 +59,34 @@ export class TipcNodeServer implements TipcServer {
         return new TipcNamespaceServerImpl<T>(this, namespace);
     }
 
+    public isOpen(): boolean {
+        return !!this.getAddressInfo();
+    }
+
     public async connect(): Promise<TipcServer> {
         await this.initWss();
         return this;
     }
 
-    public async shutdown(): Promise<void> {
+    /**
+     * Closes the TipcServer, including both the HTTP server and Websocket server it relies on.
+     *
+     * If you have supplied an external HTTP server to the TipcServer, this method will attempt to close that server too.
+     * In those cases, it is best to call this method from the `close` event handler of the server:
+     * ```
+     * server.on('close', () => tipcServer.shutdown())
+     * ```
+     * @param gracefulShutdownTimeMs Time to allow client connections to close gracefully, before they are force closed
+     * @returns
+     */
+    public async shutdown(gracefulShutdownTimeMs = 5000): Promise<void> {
+        this.logger.info("Shutting down TipcNodeServer");
         return new Promise((resolve) => {
-            if(!this.wss) {
+            if(!this.server || !this.wss) {
                 resolve(undefined);
             }
             else {
+                this.server.close();
                 this.wss.close();
                 this.wss.clients.forEach(ws => {
                     ws.close();
@@ -79,9 +99,11 @@ export class TipcNodeServer implements TipcServer {
                         done = done && (ws.readyState !== WebSocket.CLOSED);
                     });
                     if(done) {
+                        this.logger.debug("All client connections appear closed");
                         resolve(undefined);
                     }
-                    else if(timer > 5_000) {
+                    else if(timer > gracefulShutdownTimeMs) {
+                        this.logger.warn("Graceful shutdown delay exceeded. Terminating remaining client connects");
                         this.wss?.clients.forEach(ws => {
                             if(ws.readyState !== WebSocket.CLOSED) {
                                 ws.terminate();
@@ -90,13 +112,14 @@ export class TipcNodeServer implements TipcServer {
                         resolve(undefined);
                     }
                     else {
+                        this.logger.debug("Some client connections still open. Waiting 100ms");
                         setTimeout(() => {
-                            timer += 50;
+                            timer += 100;
                             checkClosed();
-                        }, 50);
+                        }, 100);
                     }
                 };
-                checkClosed();
+                nextTick(() => checkClosed());
             }
         });
     }
@@ -104,13 +127,22 @@ export class TipcNodeServer implements TipcServer {
     /////////////////////////////////////////////////////////////
     // Websocket stuff
     ////////////////////////////////////////////////////////////
-    private initWss() {
+    private async initWss() {
         if("noWsServer" in this.options) {
             return new Promise<void>(r => r());
         }
-
         const clientAlive: Map<WebSocket, boolean> = new Map();
-        const wss = new WebSocketServer(this.options);
+
+        const wss = new WebSocketServer({...this.options, port: undefined, host: undefined, server: undefined, noServer: true});
+        const server = this.setupServer();
+
+        server.on('upgrade', (request, socket, head) => {
+            this.logger.debug("New client upgrade request detected");
+            wss.handleUpgrade(request, socket, head, (ws) => {
+                wss.emit('connection', ws, request);
+            });
+        });
+
         wss.on("connection", (ws, req) => {
             clientAlive.set(ws, true);
             ws.on("pong", () => clientAlive.set(ws, true));
@@ -133,20 +165,41 @@ export class TipcNodeServer implements TipcServer {
                 this.logger.debug("Client disconnected");
                 clientAlive.delete(ws);
             });
-            ws.onerror = (err) => {
+            ws.on('error', (err) => {
                 this.logger.debug("Client error [%s]", err.message);
-            };
+            });
 
-            const callback = this.options.onNewConnection;
+            const callback = this.options.onClientConnect;
             if(callback) {
-                nextTick(() => callback(ws, req));
+                // req.url is always set here, since the request originates from the Server instance
+                const url = req.url?.startsWith("/") ? new URL(req.url, `http://${req.headers.host}`) : new URL(req.url ?? "");
+                const client = TipcNodeClient.from(ws);
+                nextTick(() => {
+                    try {
+                        callback(client, url, req);
+                    }
+                    catch (ex) {
+                        this.logger.error("Error in onClientConnect callback: %s", ex);
+                    }
+                });
+            }
+            const oldCb = this.options.onNewConnection;
+            if(oldCb) {
+                nextTick(() => {
+                    try {
+                        oldCb(ws, req);
+                    }
+                    catch (ex) {
+                        this.logger.error("Error in onNewConnection callback: %s", ex);
+                    }
+                });
             }
         });
 
         /**
          * This timeout function will periodically mark all clients to "not alive", then send a ping
          * request to the client. A response to the ping (a pong), or any message from the client, will
-         * mark the clientas alive again.
+         * mark the client as alive again.
          * IF the client is still marked as "not alive" the next time the function is called, the
          * websocket will be terminated and cleaned up
          */
@@ -176,11 +229,19 @@ export class TipcNodeServer implements TipcServer {
         });
 
         return new Promise<void>((resolve) => {
-            wss.on("listening", () => {
-                this.logger.info("Websocket Server opened");
+            if(server.listening) {
                 this.wss = wss;
+                this.server = server;
                 resolve();
-            });
+            }
+            else {
+                server.on("listening", () => {
+                    this.logger.info("Websocket Server opened");
+                    this.wss = wss;
+                    this.server = server;
+                    resolve();
+                });
+            }
         });
     }
 
@@ -191,6 +252,25 @@ export class TipcNodeServer implements TipcServer {
         else if ( obj.method === "send" ) {
             this.tipcListenerComponent.callListeners(obj.namespace, obj.topic, obj.data);
         }
+    }
+
+    private setupServer(): Server {
+        if('server' in this.options) {
+            return this.options.server;
+        }
+        if('port' in this.options && 'host' in this.options) {
+            const server = createServer();
+            server.listen(this.options.port, this.options.host);
+            return server;
+        }
+        throw new Error("Invalid server options. The options must have either 'server' or 'port'+'host' defined");
+    }
+
+    private setupCloseFunction(options: TipcServerOptions, server: Server, wss: WebSocketServer): Function {
+        if('server' in options) {
+            return () => wss.close();
+        }
+        return () => server.close();
     }
 
     /////////////////////////////////////////////////////////////

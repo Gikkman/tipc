@@ -1,13 +1,13 @@
 {
   "name": "tipc",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gikkman/tipc.git"
   },
   "homepage": "https://github.com/gikkman/tipc",
   "bugs": "https://github.com/gikkman/tipc/issues",
-  "description": "A wrapper around websockets which allows using a mapped type as a contract. As long as the server and client shares this contract types, neither can send nor receive incorrect typed data.",
+  "description": "A wrapper around a websocket which allows using a mapped type as a contract. As long as the server and client shares this contract types, neither can send nor receive incorrect typed data.",
   "author": {
     "name": "Gikkman",
     "url": "http://www.github.com/gikkman"
@@ -16,9 +16,31 @@
   "module": "./dist/mjs/index.node.js",
   "browser": "./dist/umd/index.browser.js",
   "exports": {
-    "import": "./dist/mjs/index.node.js",
-    "require": "./dist/cjs/index.node.js",
-    "browser": "./dist/umd/index.browser.js"
+    ".": {
+      "node": {
+        "types": "./dist/mjs/index.node.d.ts",
+        "import": "./dist/mjs/index.node.js",
+        "require": "./dist/cjs/index.node.js"
+      },
+      "default": {
+        "types": "./dist/umd/index.node.d.ts",
+        "import": "./dist/umd/index.browser.js"
+      }
+    },
+    "./cjs": {
+      "types": "./dist/cjs/index.node.d.ts",
+      "import": "./dist/cjs/index.node.js",
+      "require": "./dist/cjs/index.node.js"
+    },
+    "./mjs": {
+      "types": "./dist/mjs/index.node.d.ts",
+      "import": "./dist/mjs/index.node.js",
+      "require": "./dist/mjs/index.node.js"
+    },
+    "./browser": {
+      "types": "./dist/umd/index.browser.d.ts",
+      "import": "./dist/umd/index.browser.js"
+    }
   },
   "scripts": {
     "lint": "eslint .",
