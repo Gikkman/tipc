@@ -34,7 +34,7 @@ Likewise, if you are listening to messages on a topic, the callback function's a
 **It is paramount that all TIPC users share type definitions.** If different users adhere to different contracts, they will likely run into compatibility problems. For TIPC to work best, consider using a [monorepo](https://en.wikipedia.org/wiki/Monorepo), use [npm workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces) or sharing the type definitions through [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
 ## Namespaces
-Each TIPC instance (server or client) needs to be given to a namespace. Since several TIPC instances can use the same underlying websocket connection, it is possible that two contract types declares the same topic. Namespaces are a way to increase cardinality, and reduce accidental topic collisions. Ideally, namespaces should be chosen so the risk for accidental namespace collision is minimal. 
+Each TIPC instance (server or client) needs to be given to a namespace. Since several TIPC instances can use the same underlying websocket connection, it is possible that two contract types declares the same topic. Namespaces are a way to increase cardinality, and reduce accidental topic collisions. Ideally, namespaces should be chosen so the risk for accidental namespace collision is minimal.
 
 Each time you call `forContractAndNamespace<Contract>(namespace)`, a new namespaced instance is generated for the given namespace and contract. If you wish for several parts of a code base to use the same namespaced instance, it is recommended you wrap access to TIPC in a singleton.
 
@@ -49,7 +49,7 @@ type MathContract = {
 }
 ```
 
-Then use the `invoke` method on the client to send the request, and get a `Promise<number>` back. The server can answer to requests that wants a response using `setHandler` instead of `setListener`. 
+Then use the `invoke` method on the client to send the request, and get a `Promise<number>` back. The server can answer to requests that wants a response using `setHandler` instead of `setListener`.
 
 **A topic can only have one handler**, so trying to add a handler to a topic that already has a handler will throw an exception.
 
@@ -59,7 +59,19 @@ It is common to want to listen to messages on the same instance that sends the m
 When sending a fire-and-forget request with TIPC, listeners _on the same instance_ will also receive this message. The messages origins are opaque. So you can use TIPC to listen to type-safe events that are fired on the same instance.
 
 ## Single-use listeners (and handlers)
-Sometimes, you want to add a one-time use listener on a topic. For those cases, use the `setOnceListener` and/or `setOnceHandler`. These will be removed once they've been called once. Remember that a topic can only have one handler, but multiple listeners. 
+Sometimes, you want to add a one-time use listener on a topic. For those cases, use the `setOnceListener` and/or `setOnceHandler`. These will be removed once they've been called once. Remember that a topic can only have one handler, but multiple listeners.
+
+## ESM / CJS problems
+I can't for my life figure out how we're supposed to setup libraries to export both CJS, ESM and browser code. If a plain import of just `tipc` is giving you problems, I've taken the path of exposing three different import paths for cjs, esm or browser. I hope this helps. If anyone out there knows how this is actually supposed to be done so it "just works", please let me know.
+```
+const tipc = require('tipc/cjs');
+```
+```
+import * as tipc from 'tipc/esm';
+```
+```
+import * as tipc from 'tipc/browser';
+```
 
 # Examples
 You can find two examples in this repository. Run the examples by running either of:
