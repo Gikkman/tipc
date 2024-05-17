@@ -58,7 +58,8 @@
     "src",
     "LICENSE",
     "README.md",
-    "package.json"
+    "package.json",
+    "!**/*.tsbuildinfo"
   ],
   "keywords": [],
   "license": "Apache-2.0",
