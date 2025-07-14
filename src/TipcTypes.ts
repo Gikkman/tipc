@@ -132,4 +132,9 @@ export type TipcClientOptions = {
     protocol?: "ws"|"wss",
     onDisconnect?: () => void,
     loggerOptions?: TipcLoggerOptions
+} | {
+    url: string,
+    onDisconnect?: () => void,
+    loggerOptions?: TipcLoggerOptions
 }
+

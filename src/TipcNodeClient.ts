@@ -1,4 +1,4 @@
-import * as crypto from "crypto";
+import * as crypto from "node:crypto";
 import { WebSocket } from "ws";
 import { makeTipcInvokeObject, makeTipcSendObject, validateMessageObject } from "./TipcCommon";
 import { TipcListenerComponent } from "./TipcListenerComponent";
@@ -14,20 +14,21 @@ import { Callback,
 
 export class TipcNodeClient implements TipcClient {
     protected readonly logger: TipcLogger;
-    protected readonly host: string;
-    protected readonly port: number;
-    protected readonly path: string;
-    protected readonly protocol: string;
+    protected readonly url: URL;
     protected readonly tipcListenerComponent: TipcListenerComponent;
     private readonly usedNamespaces = new Set<string>();
     protected ws?: WebSocket;
+    protected hasBeenConnected: boolean;
     private onDisconnectCallback?: Callback;
 
     private constructor(options: TipcClientOptions) {
-        this.host = options.host;
-        this.port = options.port;
-        this.path = options.path ?? "";
-        this.protocol = options.protocol ?? "ws";
+        if("url" in options) {
+            this.url = new URL(options.url);
+        }
+        else {
+            this.url = new URL(`${options.protocol ?? "ws"}://${options.host}:${options.port}${options.path ?? ""}`);
+        }
+        this.hasBeenConnected = false;
         this.onDisconnectCallback = options.onDisconnect;
         this.logger = new TipcLogger({messagePrefix: "[Tipc Client]", ...options.loggerOptions});
         this.tipcListenerComponent = new TipcListenerComponent(this.logger);
@@ -38,8 +39,21 @@ export class TipcNodeClient implements TipcClient {
         return instance;
     }
 
+    public static wrap(ws: WebSocket, options: Pick<TipcClientOptions, "loggerOptions"|"onDisconnect">): TipcConnectionManager<TipcClient> {
+        const instance = new TipcNodeClient({...options, url: ws.url});
+
+        instance.ws = ws;
+        if (ws.readyState === WebSocket.OPEN) {
+            instance.hasBeenConnected = true;
+            instance.attachWsListeners(ws);
+        }
+
+        return instance;
+    }
+
     public getAddressInfo(): TipcAddressInfo {
-        return {address: this.host, port: this.port};
+        const portNumber = parseInt(this.url.port);
+        return {address: this.url.hostname, port: portNumber};
     }
 
     public isConnected(): boolean {
@@ -61,8 +75,8 @@ export class TipcNodeClient implements TipcClient {
         if(this.isConnected()) {
             return this;
         }
-        const url = `${this.protocol}://${this.host}:${this.port}${this.path}`;
-        this.ws = await this.initWs(url);
+        this.hasBeenConnected = false;
+        this.ws = await this.initWs(this.url.href);
         return this;
     }
 
@@ -85,8 +99,24 @@ export class TipcNodeClient implements TipcClient {
 
     private initWs(url: string) {
         const ws = new WebSocket(url);
-        let hasBeenConnected = false;
 
+        this.attachWsListeners(ws);
+
+        return new Promise<WebSocket>((resolve, reject) => {
+            const onError = (err: Error) => {
+                reject(err);
+            };
+            ws.on('error', onError);
+            ws.on('open', () => {
+                ws.off('error', onError);
+                this.hasBeenConnected = true;
+                this.logger.info("Websocket connection established: %s", url);
+                resolve(ws);
+            });
+        });
+    }
+
+    private attachWsListeners(ws: WebSocket) {
         ws.on('error', (err) => {
             this.logger.error('Error: %s', err.message);
         });
@@ -112,24 +142,11 @@ export class TipcNodeClient implements TipcClient {
         ws.on('close', () => {
             this.logger.info("Websocket connection closed");
             this.ws = undefined;
-            // The 'close' event is emitted even if the connect attempt fails, use 'hasBeenOpen'
+            // The 'close' event is emitted even if the connect attempt fails, use 'hasBeenConnected'
             // to ensure we only call the "onDisconnect" callback if we've ever been connected
-            if(hasBeenConnected && this.onDisconnectCallback) {
+            if(this.hasBeenConnected && this.onDisconnectCallback) {
                 this.onDisconnectCallback();
             }
-        });
-
-        return new Promise<WebSocket>((resolve, reject) => {
-            const onError = (err: Error) => {
-                reject(err);
-            };
-            ws.on('error', onError);
-            ws.on('open', () => {
-                ws.off('error', onError);
-                hasBeenConnected = true;
-                this.logger.info("Websocket connection established: %s", url);
-                resolve(ws);
-            });
         });
     }
 
